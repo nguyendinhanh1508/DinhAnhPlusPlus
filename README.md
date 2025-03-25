@@ -1,4 +1,4 @@
-# dinhanhplusplus
+# D++
 Dinh Anh's Programming Language
 This is an intepreted, high-level programming language that is still WIP.
 The base of this language is C++.
