@@ -1,6 +1,6 @@
 # dinhanhplusplus
 Dinh Anh's Programming Language
-This is my first project and I'm trying to make a high-level programming languages
+This is an intepreted, high-level programming language that is still WIP.
 Currently, these are the features:
     + calculate
     + create variable
