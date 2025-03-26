@@ -33,16 +33,16 @@ std::vector<Token> tokenize(const std::string& input) {
                 exit(1);
             }
         }
-        else if (isalpha(input[i])) {
+        else if (isalpha(input[i]) || input[i] == '_') {
             std::string variable;
-            while (i < input.size() && isalnum(input[i])) {
+            while (i < input.size() && (isalnum(input[i]) || input[i] == '_')) {
                 variable += input[i++];
             }
             if (variable == "out") tokens.push_back({ OUTPUT, "" });
             else if (variable == "in") tokens.push_back({ INPUT, "" });
-            else if (variable == "create") tokens.push_back({ NEW_VAR, "" });
+            else if (variable == "new") tokens.push_back({ NEW_VAR, "" });
             else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, ""});
-            else if (variable == "string") tokens.push_back({ STRING_IDENTIFIER, ""});
+            else if (variable == "str") tokens.push_back({ STRING_IDENTIFIER, ""});
             else tokens.push_back({ IDENTIFIER, variable });
         }
         else if (input[i] == '>') {
