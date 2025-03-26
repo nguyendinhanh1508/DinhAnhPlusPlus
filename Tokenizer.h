@@ -16,7 +16,22 @@ std::vector<Token> tokenize(const std::string& input) {
             while (i < input.size() && isdigit(input[i])) {
                 num += input[i++];
             }
-            tokens.push_back({ NUMBER, num });
+            tokens.push_back({ INTEGER, num });
+        }
+        else if (input[i] == '\"'){
+            std::string str = "";
+            i++;
+            while(i < input.size() && input[i] != '\"'){
+                str += input[i++];
+            }
+            if (i < input.size() && input[i] == '\"') {
+                tokens.push_back({ STRING, str });
+                i++;
+            }
+            else {
+                std::cerr << "Error: Missing closing quote for string literal" << std::endl;
+                exit(1);
+            }
         }
         else if (isalpha(input[i])) {
             std::string variable;
@@ -26,6 +41,8 @@ std::vector<Token> tokenize(const std::string& input) {
             if (variable == "out") tokens.push_back({ OUTPUT, "" });
             else if (variable == "in") tokens.push_back({ INPUT, "" });
             else if (variable == "create") tokens.push_back({ NEW_VAR, "" });
+            else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, ""});
+            else if (variable == "string") tokens.push_back({ STRING_IDENTIFIER, ""});
             else tokens.push_back({ IDENTIFIER, variable });
         }
         else if (input[i] == '>') {
