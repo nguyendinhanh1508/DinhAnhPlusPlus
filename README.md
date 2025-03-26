@@ -7,6 +7,6 @@ Currently, these are the features:
 - create variable
 - assign value
 - input/output
-- currently only supports integer types, i'll work on strings
+- supports both integer and strings, combined boolean and integers, i'll work on float values
 - supports parentheses
 - supports comparisons
