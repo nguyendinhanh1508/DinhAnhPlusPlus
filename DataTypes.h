@@ -5,18 +5,21 @@
 #include <cctype>
 #include <unordered_map>
 
-std::unordered_map<std::string, int> variables_integer;
-
 enum TokenType {
-    NUMBER, 
+    INTEGER, STRING, 
+    INTEGER_IDENTIFIER, STRING_IDENTIFIER, 
     PLUS, MINUS, MULTIPLY, DIVIDE, 
     ASSIGN, IDENTIFIER, 
     OUTPUT, INPUT, 
     NEW_VAR,
     LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
     MORE, MORE_EQUAL, LESS, LESS_EQUAL, EQUAL,
-    END
+    END, NONE
 };
+
+std::unordered_map<std::string, std::string> variables_integer;
+std::unordered_map<std::string, std::string> variables_string;
+std::unordered_map<std::string, TokenType> variables_type;
 
 struct Token {
     TokenType type;
