@@ -6,8 +6,8 @@
 std::vector<Token> tokenize(const std::string& input) {
     std::vector<Token> tokens;
     size_t i = 0;
-    while(i < input.size()) {
-        if(isspace(input[i])){
+    while (i < input.size()) {
+        if (isspace(input[i])) {
             i++;
             continue;
         }
@@ -27,6 +27,27 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "in") tokens.push_back({ INPUT, "" });
             else if (variable == "create") tokens.push_back({ NEW_VAR, "" });
             else tokens.push_back({ IDENTIFIER, variable });
+        }
+        else if (input[i] == '>') {
+            if (i < input.size() - 1 && input[i + 1] == '=') {
+                tokens.push_back({ MORE_EQUAL, ">=" });
+            }
+            else tokens.push_back({ MORE, ">" });
+            i++;
+        }
+        else if (input[i] == '<') {
+            if (i < input.size() - 1 && input[i + 1] == '=') {
+                tokens.push_back({ LESS_EQUAL, "<=" });
+            }
+            else tokens.push_back({ LESS, "<" });
+            i++;
+        }
+        else if(input[i] == '=') {
+            if (i < input.size() - 1 && input[i + 1] == '=') {
+                tokens.push_back({ EQUAL, "==" });
+            }
+            else tokens.push_back({ ASSIGN, "=" });
+            i++;
         }
         else if (input[i] == '(') {
             tokens.push_back({ LEFT_PARENTHESIS, "(" });
@@ -50,10 +71,6 @@ std::vector<Token> tokenize(const std::string& input) {
         }
         else if (input[i] == '/') {
             tokens.push_back({ DIVIDE, "/" });
-            i++;
-        }
-        else if (input[i] == '=') {
-            tokens.push_back({ ASSIGN, "=" });
             i++;
         }
     }
