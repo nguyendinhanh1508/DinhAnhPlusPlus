@@ -5,7 +5,7 @@
 #include <cctype>
 #include <unordered_map>
 
-std::unordered_map<std::string, int> variables;
+std::unordered_map<std::string, int> variables_integer;
 
 enum TokenType {
     NUMBER, 
@@ -14,6 +14,7 @@ enum TokenType {
     OUTPUT, INPUT, 
     NEW_VAR,
     LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
+    MORE, MORE_EQUAL, LESS, LESS_EQUAL, EQUAL,
     END
 };
 
