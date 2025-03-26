@@ -87,6 +87,11 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
         if (tokens[index].type == STRING_IDENTIFIER) var_type = STRING;
         index++;
         Token variable_name = tokens[index++];
+        if(already_declared.count(variable_name.value)){
+            std::cerr << "Error: Previously declared variable \'" << variable_name.value << '\'' << std::endl;
+            exit(1);
+        }
+        already_declared.insert(variable_name.value);
         if (var_type == INTEGER) {
             variables_integer[variable_name.value] = "0";
             variables_type[variable_name.value] = INTEGER;
