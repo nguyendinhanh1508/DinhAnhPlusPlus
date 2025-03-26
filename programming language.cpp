@@ -141,7 +141,7 @@ int evaluate(AST_NODE* node) {
             return variables[node->token.value];
         }
         std::cerr << "Error: Undefined variable '" << node->token.value << "'" << std::endl;
-        // exit(1);
+        exit(1);
     }
 
     if (node->token.type == OUTPUT) {
@@ -161,7 +161,7 @@ int evaluate(AST_NODE* node) {
     if (node->token.type == ASSIGN) {
         if (node->left->token.type != IDENTIFIER) {
             std::cerr << "Error: Left side of assignment must be a variable" << std::endl;
-            // exit(1);
+            exit(1);
         }
         std::string var_name = node->left->token.value;
         int value = evaluate(node->right);
