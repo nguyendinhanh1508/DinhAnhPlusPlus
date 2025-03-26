@@ -139,7 +139,7 @@ Token evaluate(AST_NODE* node) {
     }
     if (node->token.type == OUTPUT) {
         Token value = evaluate(node->left);
-        std::cout << '> ' << value.value << std::endl;
+        std::cout << "> " << value.value << std::endl;
         return value;
     }
     if (node->token.type == INPUT) {
