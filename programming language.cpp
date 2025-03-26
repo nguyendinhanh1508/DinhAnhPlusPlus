@@ -206,7 +206,7 @@ int main() {
         size_t index = 0;
         AST_NODE* root = parse_language(tokens, index);
         if (tokens[index].type != END) {
-            std::cerr << "Syntax error: Must write end at each line" << std::endl;
+            std::cerr << "Syntax error: Line did not end properly" << std::endl;
             FREE_AST(root);
             continue;
         }
