@@ -8,3 +8,4 @@ Currently, these are the features:
 - assign value
 - input/output
 - currently only supports integer types, i'll work on strings
+- supports parentheses
