@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 #include "DataTypes.h"
-#include "Tokenizer.cpp"
-#include "AST.cpp"
+#include "Tokenizer.h"
+#include "AST.h"
 
 int main() {
     while (true) {
