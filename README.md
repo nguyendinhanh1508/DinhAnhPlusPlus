@@ -9,3 +9,4 @@ Currently, these are the features:
 - input/output
 - currently only supports integer types, i'll work on strings
 - supports parentheses
+- supports comparisons
