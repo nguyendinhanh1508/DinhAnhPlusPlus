@@ -15,6 +15,7 @@ AST_NODE* parse(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
@@ -26,11 +27,11 @@ AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers 
     return nullptr;
 }
 
-AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index){ //look for parentheses
-    if(tokens[index].type == LEFT_PARENTHESIS){
+AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look for parentheses
+    if (tokens[index].type == LEFT_PARENTHESIS) {
         index++;
-        AST_NODE* expression = parse_lower(tokens, index);
-        if(tokens[index].type != RIGHT_PARENTHESIS){
+        AST_NODE* expression = parse_compare(tokens, index);
+        if (tokens[index].type != RIGHT_PARENTHESIS) {
             std::cerr << "Syntax Error: Expected ')' after expression" << std::endl;
             exit(1);
         }
@@ -62,6 +63,17 @@ AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index) { //look for '+
     return left;
 }
 
+AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for comparisons
+    AST_NODE* left = parse_lower(tokens, index);
+    while (tokens[index].type == EQUAL || tokens[index].type == MORE || tokens[index].type == LESS || tokens[index].type == MORE_EQUAL || tokens[index].type == LESS_EQUAL) {
+        Token operation = tokens[index++];
+        AST_NODE* right = parse_lower(tokens, index);
+        AST_NODE* node = new AST_NODE{ operation, left, right };
+        left = node;
+    }
+    return left;
+}
+
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
     if (tokens[index].type == NEW_VAR) {
         index++;
@@ -70,13 +82,13 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             exit(1);
         }
         Token variable_name = tokens[index++];
-        variables[variable_name.value] = 0;
-        return new AST_NODE{variable_name, nullptr, nullptr};
+        variables_integer[variable_name.value] = 0;
+        return new AST_NODE{ variable_name, nullptr, nullptr };
     }
     if (tokens[index].type == OUTPUT) {
         index++;
-        AST_NODE* expression = parse_lower(tokens, index);
-        return new AST_NODE{Token{OUTPUT, ""}, expression, nullptr};
+        AST_NODE* expression = parse_compare(tokens, index);
+        return new AST_NODE{ Token{OUTPUT, ""}, expression, nullptr };
     }
     if (tokens[index].type == INPUT) {
         index++;
@@ -85,15 +97,15 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             exit(1);
         }
         Token variable_name = tokens[index++];
-        return new AST_NODE{variable_name, nullptr, nullptr};
+        return new AST_NODE{ variable_name, nullptr, nullptr };
     }
-    if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index+1].type == ASSIGN) {
+    if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
         Token var_token = tokens[index];
         index += 2;
-        AST_NODE* expr = parse_lower(tokens, index);
-        return new AST_NODE{Token{ASSIGN, "="}, new AST_NODE{var_token, nullptr, nullptr}, expr};
+        AST_NODE* expr = parse_compare(tokens, index);
+        return new AST_NODE{ Token{ASSIGN, "="}, new AST_NODE{var_token, nullptr, nullptr}, expr };
     }
-    return parse_lower(tokens, index);
+    return parse_compare(tokens, index);
 }
 
 int evaluate(AST_NODE* node) {
@@ -101,8 +113,8 @@ int evaluate(AST_NODE* node) {
         return std::stoi(node->token.value);
     }
     if (node->token.type == IDENTIFIER) {
-        if (variables.count(node->token.value)) {
-            return variables[node->token.value];
+        if (variables_integer.count(node->token.value)) {
+            return variables_integer[node->token.value];
         }
         std::cerr << "Error: Undefined variable '" << node->token.value << "'" << std::endl;
         exit(1);
@@ -115,7 +127,7 @@ int evaluate(AST_NODE* node) {
     if (node->token.type == INPUT) {
         int value;
         std::cin >> value;
-        variables[node->token.value] = value;
+        variables_integer[node->token.value] = value;
         return value;
     }
     int left_val = evaluate(node->left);
@@ -126,7 +138,7 @@ int evaluate(AST_NODE* node) {
         }
         std::string var_name = node->left->token.value;
         int value = evaluate(node->right);
-        variables[var_name] = value;
+        variables_integer[var_name] = value;
         return value;
     }
     int right_val = evaluate(node->right);
@@ -145,6 +157,21 @@ int evaluate(AST_NODE* node) {
             exit(1);
         }
         return left_val / right_val;
+    }
+    if (node->token.type == MORE) {
+        return left_val > right_val;
+    }
+    if (node->token.type == MORE_EQUAL) {
+        return left_val >= right_val;
+    }
+    if (node->token.type == LESS) {
+        return left_val < right_val;
+    }
+    if (node->token.type == LESS_EQUAL) {
+        return left_val <= right_val;
+    }
+    if (node->token.type == EQUAL) {
+        return left_val == right_val;
     }
     return 0;
 }
