@@ -199,7 +199,6 @@ void FREE_AST(AST_NODE* node) {
 
 int main() {
     while (true) {
-        std::cout << "> ";
         std::string input;
         std::getline(std::cin, input);
         if (input == "EXIT") break;
