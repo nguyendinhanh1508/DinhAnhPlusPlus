@@ -4,6 +4,7 @@
 #include <vector>
 #include <cctype>
 #include <unordered_map>
+#include <unordered_set>
 
 enum TokenType {
     INTEGER, STRING, 
@@ -20,6 +21,7 @@ enum TokenType {
 std::unordered_map<std::string, std::string> variables_integer;
 std::unordered_map<std::string, std::string> variables_string;
 std::unordered_map<std::string, TokenType> variables_type;
+std::unordered_set<std::string> already_declared;
 
 struct Token {
     TokenType type;
