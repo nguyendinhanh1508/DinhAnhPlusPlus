@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include "Converters.h"
 #include "DataTypes.h"
 #include <string>
 
@@ -12,15 +13,8 @@ look for '+' and '-'
 look for variables or numbers
 */
 
-AST_NODE* parse(std::vector<Token>& tokens, size_t& index);
-AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index);
-AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index);
-AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
-AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
-AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
-
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
-    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == STRING) {
+    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == STRING || tokens[index].type == CHAR) {
         AST_NODE* node = new AST_NODE{ tokens[index], nullptr, nullptr };
         index++;
         return node;
@@ -78,16 +72,17 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for 
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
     if (tokens[index].type == NEW_VAR) {
         index++;
-        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != STRING_IDENTIFIER) {
-            std::cerr << "Syntax Error: Variable type needed after 'create'" << std::endl;
+        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != STRING_IDENTIFIER && tokens[index].type != CHAR_IDENTIFIER) {
+            std::cerr << "Syntax Error: Variable type needed after 'new'" << std::endl;
             exit(1);
         }
         TokenType var_type;
         if (tokens[index].type == INTEGER_IDENTIFIER) var_type = INTEGER;
         if (tokens[index].type == STRING_IDENTIFIER) var_type = STRING;
+        if (tokens[index].type == CHAR_IDENTIFIER) var_type = CHAR;
         index++;
         Token variable_name = tokens[index++];
-        if(already_declared.count(variable_name.value)){
+        if (already_declared.count(variable_name.value)) {
             std::cerr << "Error: Previously declared variable \'" << variable_name.value << '\'' << std::endl;
             exit(1);
         }
@@ -97,8 +92,12 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             variables_type[variable_name.value] = INTEGER;
         }
         if (var_type == STRING) {
-            variables_string[variable_name.value] = "";
+            variables_string[variable_name.value] = {};
             variables_type[variable_name.value] = STRING;
+        }
+        if (var_type == CHAR) {
+            variables_char[variable_name.value] = "";
+            variables_type[variable_name.value] = CHAR;
         }
         return new AST_NODE{ variable_name, nullptr, nullptr };
     }
@@ -132,12 +131,18 @@ Token evaluate(AST_NODE* node) {
     if (node->token.type == STRING) {
         return { STRING, node->token.value };
     }
+    if (node->token.type == CHAR) {
+        return { CHAR, node->token.value };
+    }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.value] == INTEGER) {
             return { INTEGER, variables_integer[node->token.value] };
         }
         if (variables_type[node->token.value] == STRING) {
-            return { STRING, variables_integer[node->token.value] };
+            return { STRING, string_to_string(variables_string[node->token.value]) };
+        }
+        if (variables_type[node->token.value] == CHAR) {
+            return { CHAR, variables_char[node->token.value] };
         }
         std::cerr << "Error: Undefined variable '" << node->token.value << "'" << std::endl;
         exit(1);
@@ -151,12 +156,16 @@ Token evaluate(AST_NODE* node) {
         Token value;
         std::cin >> value.value;
         if (variables_type[node->token.value] == INTEGER) {
-            variables_integer[node->token.value] = INTEGER;
+            variables_integer[node->token.value] = value.value;
             value.type = INTEGER;
         }
         if (variables_type[node->token.value] == STRING) {
-            variables_integer[node->token.value] = STRING;
+            variables_string[node->token.value] = reverse_string_to_string(value.value);
             value.type = STRING;
+        }
+        if (variables_type[node->token.value] == CHAR) {
+            variables_char[node->token.value] = value.value;
+            value.type = CHAR;
         }
         return value;
     }
@@ -176,13 +185,16 @@ Token evaluate(AST_NODE* node) {
             variables_integer[var_name] = value.value;
         }
         if (value.type == STRING) {
-            variables_integer[var_name] = value.value;
+            variables_string[node->left->token.value] = reverse_string_to_string(value.value);
+        }
+        if (value.type == CHAR) {
+            variables_char[node->left->token.value] = value.value;
         }
         return value;
     }
     Token right_val = evaluate(node->right);
     if (node->token.type == PLUS) {
-        if (left_val.type == STRING) {
+        if (left_val.type == STRING || left_val.type == CHAR) {
             return { STRING, left_val.value + right_val.value };
         }
         if (right_val.type == INTEGER) {
@@ -194,25 +206,42 @@ Token evaluate(AST_NODE* node) {
             std::cerr << "Error: You can't subtract strings from one another" << std::endl;
             exit(1);
         }
-        return { INTEGER, std::to_string(stoi(left_val.value) - stoi(right_val.value)) };
+        if (left_val.type == CHAR) {
+            return { CHAR, std::to_string(string_to_char(left_val.value) - string_to_char(right_val.value)) };
+        }
+        if (left_val.type == INTEGER) {
+            return { INTEGER, std::to_string(stoi(left_val.value) - stoi(right_val.value)) };
+        }
     }
     if (node->token.type == MULTIPLY) {
         if (left_val.type == STRING) {
             std::cerr << "Error: You can't multiply strings together" << std::endl;
             exit(1);
         }
-        return { INTEGER, std::to_string(stoi(left_val.value) * stoi(right_val.value)) };
+        if (left_val.type == CHAR) {
+            std::string converter_left = left_val.value;
+            std::string converter_right = right_val.value;
+            return { CHAR, std::to_string(string_to_char(left_val.value) * string_to_char(right_val.value)) };
+        }
+        if (left_val.type == INTEGER) {
+            return { INTEGER, std::to_string(stoi(left_val.value) * stoi(right_val.value)) };
+        }
     }
     if (node->token.type == DIVIDE) {
         if (left_val.type == STRING) {
             std::cerr << "Error: You can't divide strings by one another" << std::endl;
             exit(1);
         }
-        if (right_val.value == "0") {
+        if (right_val.value == "0" && right_val.type == INTEGER) {
             std::cerr << "Error: Division by zero" << std::endl;
             exit(1);
         }
-        return { INTEGER, std::to_string(stoi(left_val.value) / stoi(right_val.value)) };
+        if (left_val.type == CHAR) {
+            return { CHAR, std::to_string(string_to_char(left_val.value) / string_to_char(right_val.value)) };
+        }
+        if (right_val.type == INTEGER) {
+            return { INTEGER, std::to_string(stoi(left_val.value) / stoi(right_val.value)) };
+        }
     }
     if (node->token.type == MORE) {
         return { INTEGER, std::to_string(left_val.value > right_val.value) };
