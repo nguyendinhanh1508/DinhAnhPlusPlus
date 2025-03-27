@@ -7,18 +7,18 @@ std::vector<Token> tokenize(const std::string& input) {
     std::vector<Token> tokens;
     size_t i = 0;
     while (i < input.size()) {
-        if (isspace(input[i])) {
+        if (isspace(input[i])) { //ignore spaces, we need to replace this for indentations in the future
             i++;
             continue;
         }
-        else if (isdigit(input[i])) {
+        else if (isdigit(input[i])) { //check for integers
             std::string num = "";
             while (i < input.size() && isdigit(input[i])) {
                 num += input[i++];
             }
             tokens.push_back({ INTEGER, num });
         }
-        else if (input[i] == '\"'){
+        else if (input[i] == '\"'){ //check for strings
             std::string str = "";
             i++;
             while(i < input.size() && input[i] != '\"'){
@@ -33,7 +33,26 @@ std::vector<Token> tokenize(const std::string& input) {
                 exit(1);
             }
         }
-        else if (isalpha(input[i]) || input[i] == '_') {
+        else if (input[i] == '\'') { //check for characters
+            std::string str = "";
+            i++;
+            while(i < input.size() && input[i] != '\''){
+                str += input[i++];
+            }
+            if(str.size() > 1) {
+                std::cerr << "Error: Value is not a character" << std::endl;
+                exit(1);
+            }
+            else if (i < input.size() && input[i] == '\'') {
+                tokens.push_back({ CHAR, str });
+                i++;
+            }
+            else {
+                std::cerr << "Error: Missing closing quote for string literal" << std::endl;
+                exit(1);
+            }
+        }
+        else if (isalpha(input[i]) || input[i] == '_') { //check for variable names
             std::string variable;
             while (i < input.size() && (isalnum(input[i]) || input[i] == '_')) {
                 variable += input[i++];
@@ -43,50 +62,52 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "new") tokens.push_back({ NEW_VAR, "" });
             else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, ""});
             else if (variable == "str") tokens.push_back({ STRING_IDENTIFIER, ""});
+            else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, ""});
+            else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, ""});
             else tokens.push_back({ IDENTIFIER, variable });
         }
-        else if (input[i] == '>') {
+        else if (input[i] == '>') { //check for > and >=
             if (i < input.size() - 1 && input[i + 1] == '=') {
                 tokens.push_back({ MORE_EQUAL, ">=" });
             }
             else tokens.push_back({ MORE, ">" });
             i++;
         }
-        else if (input[i] == '<') {
+        else if (input[i] == '<') { //check for < and <=
             if (i < input.size() - 1 && input[i + 1] == '=') {
                 tokens.push_back({ LESS_EQUAL, "<=" });
             }
             else tokens.push_back({ LESS, "<" });
             i++;
         }
-        else if(input[i] == '=') {
+        else if(input[i] == '=') { //check for == and =
             if (i < input.size() - 1 && input[i + 1] == '=') {
                 tokens.push_back({ EQUAL, "==" });
             }
             else tokens.push_back({ ASSIGN, "=" });
             i++;
         }
-        else if (input[i] == '(') {
+        else if (input[i] == '(') { //check for (
             tokens.push_back({ LEFT_PARENTHESIS, "(" });
             i++;
         }
-        else if (input[i] == ')') {
+        else if (input[i] == ')') { //check for )
             tokens.push_back({ RIGHT_PARENTHESIS, ")" });
             i++;
         }
-        else if (input[i] == '+') {
+        else if (input[i] == '+') { //check for +
             tokens.push_back({ PLUS, "+" });
             i++;
         }
-        else if (input[i] == '-') {
+        else if (input[i] == '-') { //check for -
             tokens.push_back({ MINUS, "-" });
             i++;
         }
-        else if (input[i] == '*') {
+        else if (input[i] == '*') { //check for *
             tokens.push_back({ MULTIPLY, "*" });
             i++;
         }
-        else if (input[i] == '/') {
+        else if (input[i] == '/') { //check for /
             tokens.push_back({ DIVIDE, "/" });
             i++;
         }
