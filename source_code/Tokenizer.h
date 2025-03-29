@@ -9,7 +9,7 @@ std::vector<Token> tokenize(const std::string& input) {
     size_t i = 0;
     std::vector<list_element> list;
     bool in_list = false;
-    bool in_index = true;
+    bool in_index = false;
     while (i < input.size()) {
         if (isspace(input[i])) { //ignore spaces, we need to replace this for indentations in the future
             i++;
