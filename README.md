@@ -7,6 +7,8 @@ Currently, these are the features:
 - create variable
 - assign value
 - input/output
-- supports integer, char and strings, combined boolean and integers, i'll work on float values
+- supports integer, char
+- if you want to use boolean values, use integers instead, i'll work on boolean after
+- supports lists, and adding onto the list but haven't added accessing
 - supports parentheses
 - supports comparisons
