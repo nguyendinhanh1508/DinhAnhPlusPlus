@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-std::string string_to_string(std::vector<std::string> vec){
+std::string string_to_string(std::vector<std::string> vec) {
     std::string str = "";
-    for(auto it : vec){
+    for (auto it : vec) {
         str += it;
     }
     return str;
@@ -22,7 +22,7 @@ std::vector<std::string> reverse_string_to_string(std::string str) {
     return vec;
 }
 
-char string_to_char(std::string str){
+char string_to_char(std::string str) {
     return str[0];
 }
 #endif
