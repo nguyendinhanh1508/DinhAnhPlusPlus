@@ -13,8 +13,15 @@ look for '+' and '-'
 look for variables or numbers
 */
 
+AST_NODE* parse(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
+
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
-    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == STRING || tokens[index].type == CHAR) {
+    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == INDEX) {
         AST_NODE* node = new AST_NODE{ tokens[index], nullptr, nullptr };
         index++;
         return node;
@@ -72,39 +79,39 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for 
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
     if (tokens[index].type == NEW_VAR) {
         index++;
-        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != STRING_IDENTIFIER && tokens[index].type != CHAR_IDENTIFIER) {
+        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != CHAR_IDENTIFIER && tokens[index].type != LIST_IDENTIFIER) {
             std::cerr << "Syntax Error: Variable type needed after 'new'" << std::endl;
             exit(1);
         }
         TokenType var_type;
         if (tokens[index].type == INTEGER_IDENTIFIER) var_type = INTEGER;
-        if (tokens[index].type == STRING_IDENTIFIER) var_type = STRING;
         if (tokens[index].type == CHAR_IDENTIFIER) var_type = CHAR;
+        if (tokens[index].type == LIST_IDENTIFIER) var_type = LIST;
         index++;
         Token variable_name = tokens[index++];
-        if (already_declared.count(variable_name.value)) {
-            std::cerr << "Error: Previously declared variable \'" << variable_name.value << '\'' << std::endl;
+        if (already_declared.count(variable_name.name)) {
+            std::cerr << "Error: Previously declared variable \'" << variable_name.name << '\'' << std::endl;
             exit(1);
         }
-        already_declared.insert(variable_name.value);
+        already_declared.insert(variable_name.name);
         if (var_type == INTEGER) {
-            variables_integer[variable_name.value] = "0";
-            variables_type[variable_name.value] = INTEGER;
-        }
-        if (var_type == STRING) {
-            variables_string[variable_name.value] = {};
-            variables_type[variable_name.value] = STRING;
+            variables_integer[variable_name.name] = 0;
+            variables_type[variable_name.name] = INTEGER;
         }
         if (var_type == CHAR) {
-            variables_char[variable_name.value] = "";
-            variables_type[variable_name.value] = CHAR;
+            variables_char[variable_name.name] = ' ';
+            variables_type[variable_name.name] = CHAR;
+        }
+        if (var_type == LIST) {
+            variables_list[variable_name.name] = {};
+            variables_type[variable_name.name] = LIST;
         }
         return new AST_NODE{ variable_name, nullptr, nullptr };
     }
     if (tokens[index].type == OUTPUT) {
         index++;
         AST_NODE* expression = parse_compare(tokens, index);
-        return new AST_NODE{ Token{OUTPUT, ""}, expression, nullptr };
+        return new AST_NODE{ Token{OUTPUT,' ', 0}, expression, nullptr };
     }
     if (tokens[index].type == INPUT) {
         index++;
@@ -119,146 +126,344 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
         Token var_token = tokens[index];
         index += 2;
         AST_NODE* expression = parse_compare(tokens, index);
-        return new AST_NODE{ Token{ASSIGN, "="}, new AST_NODE{var_token, nullptr, nullptr}, expression };
+        return new AST_NODE{ Token{ASSIGN, ' ', 0, {}, "="}, new AST_NODE{var_token, nullptr, nullptr}, expression };
     }
     return parse_compare(tokens, index);
 }
 
-Token evaluate(AST_NODE* node) {
+EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == INTEGER) {
-        return { INTEGER, node->token.value };
-    }
-    if (node->token.type == STRING) {
-        return { STRING, node->token.value };
+        return { INTEGER, 0, node->token.integer, {} };
     }
     if (node->token.type == CHAR) {
-        return { CHAR, node->token.value };
+        return { CHAR, node->token.character, 0, {} };
+    }
+    if (node->token.type == LIST) {
+        return { LIST, 0, 0, node->token.list };
     }
     if (node->token.type == IDENTIFIER) {
-        if (variables_type[node->token.value] == INTEGER) {
-            return { INTEGER, variables_integer[node->token.value] };
+        if (variables_type[node->token.name] == INTEGER) {
+            return { INTEGER, 0, variables_integer[node->token.name], {} };
         }
-        if (variables_type[node->token.value] == STRING) {
-            return { STRING, string_to_string(variables_string[node->token.value]) };
+        if (variables_type[node->token.name] == CHAR) {
+            return { CHAR, variables_char[node->token.name], 0, {} };
         }
-        if (variables_type[node->token.value] == CHAR) {
-            return { CHAR, variables_char[node->token.value] };
+        if (variables_type[node->token.name] == LIST) {
+            return { LIST, 0, 0, variables_list[node->token.name] };
         }
-        std::cerr << "Error: Undefined variable '" << node->token.value << "'" << std::endl;
+        std::cerr << "Error: Undefined variable '" << node->token.name << "'" << std::endl;
         exit(1);
     }
     if (node->token.type == OUTPUT) {
-        Token value = evaluate(node->left);
-        std::cout << "> " << value.value << std::endl;
+        EvaluateValue value = evaluate(node->left);
+        if (value.type == CHAR) std::cout << "> " << value.character << std::endl;
+        else if (value.type == INTEGER) std::cout << "> " << value.integer << std::endl;
+        else if (value.type == LIST) {
+            std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
+            exit(1);
+        }
         return value;
     }
     if (node->token.type == INPUT) {
-        Token value;
-        std::cin >> value.value;
-        if (variables_type[node->token.value] == INTEGER) {
-            variables_integer[node->token.value] = value.value;
+        EvaluateValue value;
+        std::string input;
+        std::cin >> input;
+        if (variables_type[node->token.name] == INTEGER) {
+            variables_integer[node->token.name] = value.integer = stoi(input);
             value.type = INTEGER;
+            value.character = 0;
+            value.list = {};
         }
-        if (variables_type[node->token.value] == STRING) {
-            variables_string[node->token.value] = reverse_string_to_string(value.value);
-            value.type = STRING;
-        }
-        if (variables_type[node->token.value] == CHAR) {
-            variables_char[node->token.value] = value.value;
+        if (variables_type[node->token.name] == CHAR) {
+            variables_char[node->token.name] = value.character = string_to_char(input);
             value.type = CHAR;
+            value.integer = 0;
+            value.list = {};
+        }
+        if (variables_type[node->token.name] == LIST) {
+            std::cerr << "Error: You cannot input the entire list in one go" << std::endl;
+            exit(1);
         }
         return value;
     }
-    Token left_val = evaluate(node->left);
+    EvaluateValue left_val = evaluate(node->left);
     if (node->token.type == ASSIGN) {
         if (node->left->token.type != IDENTIFIER) {
             std::cerr << "Error: Left side of assignment must be a variable" << std::endl;
             exit(1);
         }
-        std::string var_name = node->left->token.value;
-        Token value = evaluate(node->right);
-        if (variables_type[var_name] != value.type) {
+        std::string var_name = node->left->token.name;
+        EvaluateValue value = evaluate(node->right);
+        if (variables_type[var_name] != value.type && !((variables_type[var_name] == CHAR && value.type == INTEGER) || (variables_type[var_name] == INTEGER && value.type == CHAR))) {
             std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
             exit(1);
         }
         if (value.type == INTEGER) {
-            variables_integer[var_name] = value.value;
-        }
-        if (value.type == STRING) {
-            variables_string[node->left->token.value] = reverse_string_to_string(value.value);
+            if (variables_type[var_name] == CHAR) variables_char[var_name] = value.integer;
+            else if (variables_type[var_name] == INTEGER) variables_integer[var_name] = value.integer;
         }
         if (value.type == CHAR) {
-            variables_char[node->left->token.value] = value.value;
+            if (variables_type[var_name] == CHAR) variables_char[var_name] = value.character;
+            else if (variables_type[var_name] == INTEGER) variables_integer[var_name] = value.character;
+        }
+        if (value.type == LIST) {
+            if (variables_type[var_name] == LIST) {
+                variables_list[var_name] = value.list;
+            }
         }
         return value;
     }
-    Token right_val = evaluate(node->right);
+    EvaluateValue right_val = evaluate(node->right);
     if (node->token.type == PLUS) {
-        if (left_val.type == STRING || left_val.type == CHAR) {
-            return { STRING, left_val.value + right_val.value };
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer + (int)right_val.character), {} };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer + right_val.integer), {} };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot add a list onto an integer" << std::endl;
+                exit(1);
+            }
         }
-        if (right_val.type == INTEGER) {
-            return { INTEGER, std::to_string(stoi(left_val.value) + stoi(right_val.value)) };
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)((int)left_val.character + (int)right_val.character), {} };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)((int)left_val.character + right_val.integer), {} };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot add a list onto a character" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::vector<list_element> list = left_val.list;
+            if (right_val.type == CHAR) {
+                list.push_back({ 0, right_val.character });
+            }
+            else if (right_val.type == INTEGER) {
+                list.push_back({ right_val.integer, 0 });
+            }
+            else if (right_val.type == LIST) {
+                for (auto it : right_val.list) {
+                    list.push_back(it);
+                }
+            }
+            return { LIST, 0, 0, list };
         }
     }
     if (node->token.type == MINUS) {
-        if (left_val.type == STRING) {
-            std::cerr << "Error: You can't subtract strings from one another" << std::endl;
-            exit(1);
-        }
         if (left_val.type == CHAR) {
-            return { CHAR, std::to_string(string_to_char(left_val.value) - string_to_char(right_val.value)) };
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character - right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character - right_val.character) };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot subtract a list from an integer" << std::endl;
+                exit(1);
+            }
         }
         if (left_val.type == INTEGER) {
-            return { INTEGER, std::to_string(stoi(left_val.value) - stoi(right_val.value)) };
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer - right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer - right_val.integer) };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot subtract a list from a character" << std::endl;
+                exit(1);
+            }
+        }
+        if (left_val.type == LIST) {
+            std::cerr << "You cannot subtract things from a list" << std::endl;
+            exit(1);
         }
     }
     if (node->token.type == MULTIPLY) {
-        if (left_val.type == STRING) {
-            std::cerr << "Error: You can't multiply strings together" << std::endl;
-            exit(1);
-        }
         if (left_val.type == CHAR) {
-            std::string converter_left = left_val.value;
-            std::string converter_right = right_val.value;
-            return { CHAR, std::to_string(string_to_char(left_val.value) * string_to_char(right_val.value)) };
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character * right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character * right_val.character) };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot multiply an integer by a list" << std::endl;
+                exit(1);
+            }
         }
         if (left_val.type == INTEGER) {
-            return { INTEGER, std::to_string(stoi(left_val.value) * stoi(right_val.value)) };
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer * right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer * right_val.integer) };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot multiply a character by a list" << std::endl;
+                exit(1);
+            }
+        }
+        if (left_val.type == LIST) {
+            std::cerr << "You cannot multiply the list by anything" << std::endl;
+            exit(1);
         }
     }
     if (node->token.type == DIVIDE) {
-        if (left_val.type == STRING) {
-            std::cerr << "Error: You can't divide strings by one another" << std::endl;
+        if (right_val.integer == 0 && right_val.type == INTEGER) {
+            std::cerr << "Error: Division by zero" << std::endl;
             exit(1);
         }
-        if (right_val.value == "0" && right_val.type == INTEGER) {
+        if (right_val.character == 0 && right_val.type == CHAR) {
             std::cerr << "Error: Division by zero" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
-            return { CHAR, std::to_string(string_to_char(left_val.value) / string_to_char(right_val.value)) };
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character / right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character / right_val.character) };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot divide a character by a list" << std::endl;
+                exit(1);
+            }
         }
-        if (right_val.type == INTEGER) {
-            return { INTEGER, std::to_string(stoi(left_val.value) / stoi(right_val.value)) };
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer / right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer / right_val.integer) };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot divide an integer by a list" << std::endl;
+                exit(1);
+            }
+        }
+        if (left_val.type == LIST) {
+            std::cerr << "You cannot divide a list by anything" << std::endl;
+            exit(1);
         }
     }
     if (node->token.type == MORE) {
-        return { INTEGER, std::to_string(left_val.value > right_val.value) };
+        if (left_val.type == LIST || right_val.type == LIST) {
+            std::cerr << "You cannot compare a list to anything" << std::endl;
+            exit(1);
+        }
+        if (left_val.type == CHAR) {
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character > right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character > right_val.character) };
+            }
+        }
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer > right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer > right_val.integer) };
+            }
+        }
     }
     if (node->token.type == MORE_EQUAL) {
-        return { INTEGER, std::to_string(left_val.value >= right_val.value) };
+        if (left_val.type == LIST || right_val.type == LIST) {
+            std::cerr << "You cannot compare a list to anything" << std::endl;
+            exit(1);
+        }
+        if (left_val.type == CHAR) {
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character >= right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character >= right_val.character) };
+            }
+        }
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer >= right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer >= right_val.integer) };
+            }
+        }
     }
     if (node->token.type == LESS) {
-        return { INTEGER, std::to_string(left_val.value < right_val.value) };
+        if (left_val.type == LIST || right_val.type == LIST) {
+            std::cerr << "You cannot compare a list to anything" << std::endl;
+            exit(1);
+        }
+        if (left_val.type == CHAR) {
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character < right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character < right_val.character) };
+            }
+        }
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer < right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer < right_val.integer) };
+            }
+        }
     }
     if (node->token.type == LESS_EQUAL) {
-        return { INTEGER, std::to_string(left_val.value <= right_val.value) };
+        if (left_val.type == LIST || right_val.type == LIST) {
+            std::cerr << "You cannot compare a list to anything" << std::endl;
+            exit(1);
+        }
+        if (left_val.type == CHAR) {
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character <= right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character <= right_val.character) };
+            }
+        }
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer <= right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer <= right_val.integer) };
+            }
+        }
     }
     if (node->token.type == EQUAL) {
-        return { INTEGER, std::to_string(left_val.value == right_val.value) };
+        if (left_val.type == LIST || right_val.type == LIST) {
+            std::cerr << "You cannot compare a list to anything" << std::endl;
+            exit(1);
+        }
+        if (left_val.type == CHAR) {
+            if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.character == right_val.integer) };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.character == right_val.character) };
+            }
+        }
+        if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, ' ', (int)(left_val.integer == right_val.character) };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, ' ', (int)(left_val.integer == right_val.integer) };
+            }
+        }
     }
-    return { NONE, "" };
+    return { NONE, ' ', 0 };
 }
 
 void FREE_AST(AST_NODE* node) { //delete the AST =)
