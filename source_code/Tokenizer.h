@@ -52,6 +52,22 @@ std::vector<Token> tokenize(const std::string& input) {
                 exit(1);
             }
         }
+        else if (input[i] == '\"') {
+            std::vector<list_element> str;
+            i++;
+            while (i < input.size() && input[i] != '\"') {
+                str.push_back({ CHAR, 0, input[i++], {} });
+            }
+            if (i < input.size() && input[i] == '\"') {
+                if (in_list) list.back().push_back({ LIST, 0, 0, str });
+                else tokens.push_back({ LIST, 0, 0, str, "" });
+                i++;
+            }
+            else {
+                std::cerr << "Syntax Error: Missing closing quote for string lateral" << std::endl;
+                exit(1);
+            }
+        }
         else if (input[i] == '\'') { //check for characters
             std::string str = "";
             i++;
@@ -62,13 +78,13 @@ std::vector<Token> tokenize(const std::string& input) {
                 std::cerr << "Error: Value is not a character" << std::endl;
                 exit(1);
             }
-            else if (i < input.size() && input[i] == '\'') {
-                if (in_list) list.back().push_back({ CHAR, 0, string_to_char(str) });
+            if (i < input.size() && input[i] == '\'') {
+                if (in_list) list.back().push_back({ CHAR, 0, string_to_char(str), {} });
                 else tokens.push_back({ CHAR, string_to_char(str), 0, {}, "" });
                 i++;
             }
             else {
-                std::cerr << "Error: Missing closing quote for string literal" << std::endl;
+                std::cerr << "Syntax Error: Missing closing quote for character" << std::endl;
                 exit(1);
             }
         }
@@ -82,6 +98,7 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "new") tokens.push_back({ NEW_VAR, 0, 0, {}, "" });
             else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "" });
             else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "" });
+            else if (variable == "str") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "" });
             else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "" });
             else tokens.push_back({ IDENTIFIER, 0, 0, {}, variable });
         }
