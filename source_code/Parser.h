@@ -3,6 +3,7 @@
 #include "Converters.h"
 #include "DataTypes.h"
 #include <string>
+#include <unordered_set>
 
 /*
 the order is:
@@ -35,7 +36,7 @@ AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for in
     while (index < tokens.size() && tokens[index].type == GET_VALUE) {
         index++;
         AST_NODE* expression = parse_compare(tokens, index);
-        if(tokens[index].type != INDEX_END) {
+        if (tokens[index].type != INDEX_END) {
             std::cerr << "Syntax Error: Expected ']' after index" << std::endl;
             exit(1);
         }
@@ -176,8 +177,20 @@ EvaluateValue evaluate(AST_NODE* node) {
         if (value.type == CHAR) std::cout << "> " << value.character << std::endl;
         else if (value.type == INTEGER) std::cout << "> " << value.integer << std::endl;
         else if (value.type == LIST) {
-            std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
-            exit(1);
+            std::unordered_set<int> hash_set;
+            for(auto it : value.list) {
+                hash_set.insert((int)it.type);
+            }
+            if(hash_set.size() != 1 || *hash_set.begin() != (int)CHAR) {
+                std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
+                exit(1);
+            }
+            else {
+                std::cout << "> ";
+                for(auto it : value.list) {
+                    std::cout << it.character;
+                }
+            }
         }
         return value;
     }
@@ -232,11 +245,11 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     EvaluateValue right_val = evaluate(node->right);
     if (node->token.type == GET_VALUE) {
-        if (left_val.type == LIST && right_val.type != LIST){
+        if (left_val.type == LIST && right_val.type != LIST) {
             int list_index = -1;
             if (right_val.type == CHAR) list_index = (int)right_val.character;
             else if (right_val.type == INTEGER) list_index = right_val.integer;
-            if(list_index >= left_val.list.size()) {
+            if (list_index >= left_val.list.size()) {
                 std::cerr << "Error: List out of bounds access" << std::endl;
                 exit(1);
             }
@@ -247,7 +260,7 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, left_val.list[list_index].integer, {} };
             }
             else if (left_val.list[list_index].type == LIST) {
-                return { LIST, 0, 0, left_val.list[list_index].list};
+                return { LIST, 0, 0, left_val.list[list_index].list };
             }
         }
     }
@@ -500,7 +513,7 @@ EvaluateValue evaluate(AST_NODE* node) {
             }
         }
     }
-    return { NONE, 0, 0 , {}};
+    return { NONE, 0, 0 , {} };
 }
 
 void FREE_AST(AST_NODE* node) { //delete the AST =)
