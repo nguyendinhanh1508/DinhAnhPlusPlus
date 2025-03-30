@@ -178,16 +178,16 @@ EvaluateValue evaluate(AST_NODE* node) {
         else if (value.type == INTEGER) std::cout << "> " << value.integer << std::endl;
         else if (value.type == LIST) {
             std::unordered_set<int> hash_set;
-            for(auto it : value.list) {
+            for (auto it : value.list) {
                 hash_set.insert((int)it.type);
             }
-            if(hash_set.size() != 1 || *hash_set.begin() != (int)CHAR) {
+            if (hash_set.size() != 1 || *hash_set.begin() != (int)CHAR) {
                 std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
                 exit(1);
             }
             else {
                 std::cout << "> ";
-                for(auto it : value.list) {
+                for (auto it : value.list) {
                     std::cout << it.character;
                 }
             }
