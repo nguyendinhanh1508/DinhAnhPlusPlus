@@ -45,6 +45,7 @@ struct EvaluateValue {
     char character;
     int integer;
     std::vector<list_element> list;
+    std::string name;
 };
 
 struct AST_NODE {
