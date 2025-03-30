@@ -14,6 +14,7 @@ look for variables or numbers
 */
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
@@ -21,7 +22,7 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
-    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == INDEX) {
+    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST) {
         AST_NODE* node = new AST_NODE{ tokens[index], nullptr, nullptr };
         index++;
         return node;
@@ -29,10 +30,26 @@ AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers 
     return nullptr;
 }
 
+AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for indices for list access
+    AST_NODE* left = parse(tokens, index);
+    while (index < tokens.size() && tokens[index].type == GET_VALUE) {
+        index++;
+        AST_NODE* expression = parse_compare(tokens, index);
+        if(tokens[index].type != INDEX_END) {
+            std::cerr << "Syntax Error: Expected ']' after index" << std::endl;
+            exit(1);
+        }
+        index++;
+        AST_NODE* node = new AST_NODE{ Token{GET_VALUE, 0, 0, {}, "[]"}, left, expression };
+        left = node;
+    }
+    return left;
+}
+
 AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look for parentheses
     if (tokens[index].type == LEFT_PARENTHESIS) {
         index++;
-        AST_NODE* expression = parse_compare(tokens, index);
+        AST_NODE* expression = parse_lower(tokens, index);
         if (tokens[index].type != RIGHT_PARENTHESIS) {
             std::cerr << "Syntax Error: Expected ')' after expression" << std::endl;
             exit(1);
@@ -40,7 +57,7 @@ AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look 
         index++;
         return expression;
     }
-    return parse(tokens, index);
+    return parse_index(tokens, index);
 }
 
 AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index) { //look for '*' and '/'
@@ -214,13 +231,30 @@ EvaluateValue evaluate(AST_NODE* node) {
         return value;
     }
     EvaluateValue right_val = evaluate(node->right);
+    if (node->token.type == GET_VALUE) {
+        if (left_val.type == LIST && right_val.type != LIST){
+            int list_index = -1;
+            if (right_val.type == CHAR) list_index = (int)right_val.character;
+            else if (right_val.type == INTEGER) list_index = right_val.integer;
+            if(list_index >= left_val.list.size()) {
+                std::cerr << "Error: List out of bounds access" << std::endl;
+                exit(1);
+            }
+            if (left_val.list[list_index].type == CHAR) {
+                return { CHAR, left_val.list[list_index].character, 0, {} };
+            }
+            else if (left_val.list[list_index].type == INTEGER) {
+                return { INTEGER, 0, left_val.list[list_index].integer, {} };
+            }
+        }
+    }
     if (node->token.type == PLUS) {
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer + (int)right_val.character), {} };
+                return { INTEGER, 0, (int)(left_val.integer + (int)right_val.character), {} };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer + right_val.integer), {} };
+                return { INTEGER, 0, (int)(left_val.integer + right_val.integer), {} };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot add a list onto an integer" << std::endl;
@@ -229,10 +263,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         else if (left_val.type == CHAR) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)((int)left_val.character + (int)right_val.character), {} };
+                return { INTEGER, 0, (int)((int)left_val.character + (int)right_val.character), {} };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)((int)left_val.character + right_val.integer), {} };
+                return { INTEGER, 0, (int)((int)left_val.character + right_val.integer), {} };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot add a list onto a character" << std::endl;
@@ -258,10 +292,10 @@ EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == MINUS) {
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character - right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character - right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character - right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character - right_val.character) };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot subtract a list from an integer" << std::endl;
@@ -270,10 +304,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer - right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer - right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer - right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer - right_val.integer) };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot subtract a list from a character" << std::endl;
@@ -288,10 +322,10 @@ EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == MULTIPLY) {
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character * right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character * right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character * right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character * right_val.character) };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot multiply an integer by a list" << std::endl;
@@ -300,10 +334,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer * right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer * right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer * right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer * right_val.integer) };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot multiply a character by a list" << std::endl;
@@ -326,10 +360,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character / right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character / right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character / right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character / right_val.character) };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot divide a character by a list" << std::endl;
@@ -338,10 +372,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer / right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer / right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer / right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer / right_val.integer) };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot divide an integer by a list" << std::endl;
@@ -360,18 +394,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character > right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character > right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character > right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character > right_val.character) };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer > right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer > right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer > right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer > right_val.integer) };
             }
         }
     }
@@ -382,18 +416,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character >= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character >= right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character >= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character >= right_val.character) };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer >= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer >= right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer >= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer >= right_val.integer) };
             }
         }
     }
@@ -404,18 +438,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character < right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character < right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character < right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character < right_val.character) };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer < right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer < right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer < right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer < right_val.integer) };
             }
         }
     }
@@ -426,18 +460,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character <= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character <= right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character <= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character <= right_val.character) };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer <= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer <= right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer <= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer <= right_val.integer) };
             }
         }
     }
@@ -448,22 +482,22 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.character == right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character == right_val.integer) };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.character == right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character == right_val.character) };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, ' ', (int)(left_val.integer == right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer == right_val.character) };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, ' ', (int)(left_val.integer == right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer == right_val.integer) };
             }
         }
     }
-    return { NONE, ' ', 0 };
+    return { NONE, 0, 0 , {}};
 }
 
 void FREE_AST(AST_NODE* node) { //delete the AST =)
