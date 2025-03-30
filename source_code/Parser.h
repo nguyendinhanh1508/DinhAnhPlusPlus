@@ -177,19 +177,23 @@ EvaluateValue evaluate(AST_NODE* node) {
         if (value.type == CHAR) std::cout << "> " << value.character << std::endl;
         else if (value.type == INTEGER) std::cout << "> " << value.integer << std::endl;
         else if (value.type == LIST) {
-            std::unordered_set<int> hash_set;
+            bool is_string = true;
             for (auto it : value.list) {
-                hash_set.insert((int)it.type);
+                if (it.type != CHAR) {
+                    is_string = false;
+                    break;
+                }
             }
-            if (hash_set.size() != 1 || *hash_set.begin() != (int)CHAR) {
-                std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
-                exit(1);
-            }
-            else {
+            if (is_string) {
                 std::cout << "> ";
                 for (auto it : value.list) {
                     std::cout << it.character;
                 }
+                std::cout << std::endl;
+            }
+            else {
+                std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
+                exit(1);
             }
         }
         return value;
