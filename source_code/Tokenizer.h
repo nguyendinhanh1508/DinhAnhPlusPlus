@@ -9,18 +9,17 @@ std::vector<Token> tokenize(const std::string& input) {
     size_t i = 0;
     std::vector<list_element> list;
     bool in_list = false;
-    bool in_index = false;
     while (i < input.size()) {
         if (isspace(input[i])) { //ignore spaces, we need to replace this for indentations in the future
             i++;
             continue;
         }
         else if (input[i] == '[') { //check for indices
-            in_index = true;
+            tokens.push_back({ GET_VALUE, 0, 0, {}, "" });
             i++;
         }
         else if (input[i] == ']') {
-            in_index = false;
+            tokens.push_back({ INDEX_END, 0, 0, {}, "" });
             i++;
         }
         else if (input[i] == '{') { //check for lists
@@ -38,8 +37,7 @@ std::vector<Token> tokenize(const std::string& input) {
             while (i < input.size() && isdigit(input[i])) {
                 num += input[i++];
             }
-            if (in_list) list.push_back({ stoi(num), 0 });
-            else if (in_index) tokens.push_back({ INDEX, 0, stoi(num), {}, ""});
+            if (in_list) list.push_back({ INTEGER, stoi(num), 0 });
             else tokens.push_back({ INTEGER, 0, stoi(num), {}, "" });
         }
         else if (input[i] == ',') {
@@ -62,7 +60,7 @@ std::vector<Token> tokenize(const std::string& input) {
                 exit(1);
             }
             else if (i < input.size() && input[i] == '\'') {
-                if (in_list) list.push_back({ 0, string_to_char(str) });
+                if (in_list) list.push_back({ CHAR, 0, string_to_char(str) });
                 else tokens.push_back({ CHAR, string_to_char(str), 0, {}, "" });
                 i++;
             }
@@ -82,9 +80,6 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "" });
             else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "" });
             else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "" });
-            else if (variable == "str") {
-                tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "" });
-            }
             else tokens.push_back({ IDENTIFIER, 0, 0, {}, variable });
         }
         else if (input[i] == '>') { //check for > and >=
