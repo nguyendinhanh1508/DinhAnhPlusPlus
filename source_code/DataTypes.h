@@ -14,11 +14,13 @@ enum TokenType {
     OUTPUT, INPUT,
     NEW_VAR,
     LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
+    GET_VALUE, INDEX_END,
     MORE, MORE_EQUAL, LESS, LESS_EQUAL, EQUAL,
     END, NONE
 };
 
 struct list_element {
+    int type;
     int integer;
     char character;
 };
