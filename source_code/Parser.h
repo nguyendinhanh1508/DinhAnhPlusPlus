@@ -138,7 +138,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             exit(1);
         }
         Token variable_name = tokens[index++];
-        return new AST_NODE{ variable_name, nullptr, nullptr };
+        return new AST_NODE{ Token{INPUT, ' ', 0}, new AST_NODE{variable_name, nullptr, nullptr}, nullptr };
     }
     if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
         Token var_token = tokens[index];
@@ -151,23 +151,23 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
 
 EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == INTEGER) {
-        return { INTEGER, 0, node->token.integer, {} };
+        return { INTEGER, 0, node->token.integer, {} , ""};
     }
     if (node->token.type == CHAR) {
-        return { CHAR, node->token.character, 0, {} };
+        return { CHAR, node->token.character, 0, {}, "" };
     }
     if (node->token.type == LIST) {
         return { LIST, 0, 0, node->token.list };
     }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
-            return { INTEGER, 0, variables_integer[node->token.name], {} };
+            return { INTEGER, 0, variables_integer[node->token.name], {},"" };
         }
         if (variables_type[node->token.name] == CHAR) {
-            return { CHAR, variables_char[node->token.name], 0, {} };
+            return { CHAR, variables_char[node->token.name], 0, {}, "" };
         }
         if (variables_type[node->token.name] == LIST) {
-            return { LIST, 0, 0, variables_list[node->token.name] };
+            return { LIST, 0, 0, variables_list[node->token.name], "" };
         }
         std::cerr << "Error: Undefined variable '" << node->token.name << "'" << std::endl;
         exit(1);
@@ -196,29 +196,32 @@ EvaluateValue evaluate(AST_NODE* node) {
                 exit(1);
             }
         }
-        return value;
+        return {NONE, 0, 0, {}, ""};
     }
     if (node->token.type == INPUT) {
-        EvaluateValue value;
+        if (!node->left || node->left->token.type != IDENTIFIER) {
+            std::cerr << "Error: 'in' must be followed by a variable name" << std::endl;
+            exit(1);
+        }
+        std::string var_name = node->left->token.name;
+        if (variables_type.count(var_name) == 0) {
+            std::cerr << "Error: Undeclared variable '" << var_name << '\'' << std::endl;
+            exit(1);
+        }
+        std::cout << "> ";
         std::string input;
         std::cin >> input;
-        if (variables_type[node->token.name] == INTEGER) {
-            variables_integer[node->token.name] = value.integer = stoi(input);
-            value.type = INTEGER;
-            value.character = 0;
-            value.list = {};
+        if (variables_type[var_name] == INTEGER) {
+            variables_integer[var_name] = stoi(input);
         }
-        if (variables_type[node->token.name] == CHAR) {
-            variables_char[node->token.name] = value.character = string_to_char(input);
-            value.type = CHAR;
-            value.integer = 0;
-            value.list = {};
+        else if (variables_type[var_name] == CHAR) {
+            variables_char[var_name] = string_to_char(input);
         }
-        if (variables_type[node->token.name] == LIST) {
+        else if (variables_type[var_name] == LIST) {
             std::cerr << "Error: You cannot input the entire list in one go" << std::endl;
             exit(1);
         }
-        return value;
+        return {NONE, 0, 0, {}, ""};
     }
     EvaluateValue left_val = evaluate(node->left);
     if (node->token.type == ASSIGN) {
@@ -271,10 +274,10 @@ EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == PLUS) {
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer + (int)right_val.character), {} };
+                return { INTEGER, 0, (int)(left_val.integer + (int)right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer + right_val.integer), {} };
+                return { INTEGER, 0, (int)(left_val.integer + right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot add a list onto an integer" << std::endl;
@@ -283,10 +286,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         else if (left_val.type == CHAR) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)((int)left_val.character + (int)right_val.character), {} };
+                return { INTEGER, 0, (int)((int)left_val.character + (int)right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)((int)left_val.character + right_val.integer), {} };
+                return { INTEGER, 0, (int)((int)left_val.character + right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot add a list onto a character" << std::endl;
@@ -306,16 +309,16 @@ EvaluateValue evaluate(AST_NODE* node) {
                     list.push_back(it);
                 }
             }
-            return { LIST, 0, 0, list };
+            return { LIST, 0, 0, list, "" };
         }
     }
     if (node->token.type == MINUS) {
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character - right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character - right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character - right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character - right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot subtract a list from an integer" << std::endl;
@@ -324,10 +327,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer - right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer - right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer - right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer - right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot subtract a list from a character" << std::endl;
@@ -342,10 +345,10 @@ EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == MULTIPLY) {
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character * right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character * right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character * right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character * right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot multiply an integer by a list" << std::endl;
@@ -354,10 +357,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer * right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer * right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer * right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer * right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot multiply a character by a list" << std::endl;
@@ -380,10 +383,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character / right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character / right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character / right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character / right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot divide a character by a list" << std::endl;
@@ -392,10 +395,10 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer / right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer / right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer / right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer / right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
                 std::cerr << "You cannot divide an integer by a list" << std::endl;
@@ -414,18 +417,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character > right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character > right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character > right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character > right_val.character), {}, "" };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer > right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer > right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer > right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer > right_val.integer), {}, "" };
             }
         }
     }
@@ -436,18 +439,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character >= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character >= right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character >= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character >= right_val.character), {}, "" };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer >= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer >= right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer >= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer >= right_val.integer), {}, "" };
             }
         }
     }
@@ -458,18 +461,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character < right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character < right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character < right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character < right_val.character), {}, "" };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer < right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer < right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer < right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer < right_val.integer), {}, "" };
             }
         }
     }
@@ -480,18 +483,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character <= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character <= right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character <= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character <= right_val.character), {}, "" };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer <= right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer <= right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer <= right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer <= right_val.integer), {}, "" };
             }
         }
     }
@@ -502,18 +505,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         if (left_val.type == CHAR) {
             if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.character == right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.character == right_val.integer), {}, "" };
             }
             else if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.character == right_val.character) };
+                return { INTEGER, 0, (int)(left_val.character == right_val.character), {}, "" };
             }
         }
         if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
-                return { INTEGER, 0, (int)(left_val.integer == right_val.character) };
+                return { INTEGER, 0, (int)(left_val.integer == right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
-                return { INTEGER, 0, (int)(left_val.integer == right_val.integer) };
+                return { INTEGER, 0, (int)(left_val.integer == right_val.integer), {}, "" };
             }
         }
     }
