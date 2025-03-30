@@ -23,6 +23,7 @@ struct list_element {
     int type;
     int integer;
     char character;
+    std::vector<list_element> list;
 };
 
 std::unordered_map<std::string, int> variables_integer;
