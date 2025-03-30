@@ -7,8 +7,8 @@
 std::vector<Token> tokenize(const std::string& input) {
     std::vector<Token> tokens;
     size_t i = 0;
-    std::vector<list_element> list;
-    bool in_list = false;
+    std::vector<std::vector<list_element>> list;
+    int in_list;
     while (i < input.size()) {
         if (isspace(input[i])) { //ignore spaces, we need to replace this for indentations in the future
             i++;
@@ -23,13 +23,16 @@ std::vector<Token> tokenize(const std::string& input) {
             i++;
         }
         else if (input[i] == '{') { //check for lists
-            in_list = true;
-            list.clear();
+            in_list++;
+            list.push_back({});
             i++;
         }
         else if (input[i] == '}') { //out of the list
-            in_list = false;
-            tokens.push_back({ LIST, 0, 0, list, "" });
+            in_list--;
+            std::vector<list_element> cur_list = list.back();
+            list.pop_back();
+            if (list.empty()) tokens.push_back({ LIST, 0, 0, cur_list, "" });
+            else list.back().push_back({ LIST, 0, 0, cur_list });
             i++;
         }
         else if (isdigit(input[i])) { //check for integers
@@ -37,7 +40,7 @@ std::vector<Token> tokenize(const std::string& input) {
             while (i < input.size() && isdigit(input[i])) {
                 num += input[i++];
             }
-            if (in_list) list.push_back({ INTEGER, stoi(num), 0 });
+            if (in_list) list.back().push_back({ INTEGER, stoi(num), 0 });
             else tokens.push_back({ INTEGER, 0, stoi(num), {}, "" });
         }
         else if (input[i] == ',') {
@@ -60,7 +63,7 @@ std::vector<Token> tokenize(const std::string& input) {
                 exit(1);
             }
             else if (i < input.size() && input[i] == '\'') {
-                if (in_list) list.push_back({ CHAR, 0, string_to_char(str) });
+                if (in_list) list.back().push_back({ CHAR, 0, string_to_char(str) });
                 else tokens.push_back({ CHAR, string_to_char(str), 0, {}, "" });
                 i++;
             }
