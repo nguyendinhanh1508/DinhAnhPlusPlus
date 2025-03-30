@@ -246,6 +246,9 @@ EvaluateValue evaluate(AST_NODE* node) {
             else if (left_val.list[list_index].type == INTEGER) {
                 return { INTEGER, 0, left_val.list[list_index].integer, {} };
             }
+            else if (left_val.list[list_index].type == LIST) {
+                return { LIST, 0, 0, left_val.list[list_index].list};
+            }
         }
     }
     if (node->token.type == PLUS) {
