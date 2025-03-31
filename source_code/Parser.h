@@ -16,7 +16,7 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
-    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == STRING) {
+    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == STRING || tokens[index].type == BOOLEAN) {
         AST_NODE* node = new AST_NODE{ tokens[index], nullptr, nullptr };
         index++;
         return node;
@@ -90,15 +90,16 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for 
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
     if (tokens[index].type == NEW_VAR) {
         index++;
-        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != CHAR_IDENTIFIER && tokens[index].type != LIST_IDENTIFIER && tokens[index].type != STRING_IDENTIFIER) {
-            std::cerr << "Syntax Error: Variable type needed after 'new'" << std::endl;
-            exit(1);
-        }
         TokenType var_type;
         if (tokens[index].type == INTEGER_IDENTIFIER) var_type = INTEGER;
         else if (tokens[index].type == CHAR_IDENTIFIER) var_type = CHAR;
         else if (tokens[index].type == LIST_IDENTIFIER) var_type = LIST;
         else if (tokens[index].type == STRING_IDENTIFIER) var_type = STRING;
+        else if (tokens[index].type == BOOLEAN_IDENTIFIER) var_type = BOOLEAN;
+        else {
+            std::cerr << "Syntax Error: Variable type needed after 'new'" << std::endl;
+            exit(1);
+        }
         index++;
         Token variable_name = tokens[index++];
         if (already_declared.count(variable_name.name)) {
@@ -121,6 +122,10 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
         else if (var_type == STRING) {
             variables_list[variable_name.name] = {};
             variables_type[variable_name.name] = STRING;
+        }
+        else if (var_type == BOOLEAN) {
+            variables_integer[variable_name.name] = 0;
+            variables_type[variable_name.name] = BOOLEAN;
         }
         return new AST_NODE{ variable_name, nullptr, nullptr };
     }
