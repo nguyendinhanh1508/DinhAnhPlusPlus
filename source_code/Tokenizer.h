@@ -100,6 +100,15 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "character" });
             else if (variable == "str") tokens.push_back({ STRING_IDENTIFIER, 0, 0, {}, "string" });
             else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "list" });
+            else if (variable == "bool") tokens.push_back({ BOOLEAN_IDENTIFIER, 0, 0, {}, "boolean" });
+            else if (variable == "true") {
+                if (in_list) list.back().push_back({ BOOLEAN, 1, 0 });
+                else tokens.push_back({ BOOLEAN, 0, 1, {}, "" });
+            }
+            else if (variable == "false") {
+                if (in_list) list.back().push_back({ BOOLEAN, 0, 0 });
+                else tokens.push_back({ BOOLEAN, 0, 0, {}, "" });
+            }
             else tokens.push_back({ IDENTIFIER, 0, 0, {}, variable });
         }
         else if (input[i] == '>') { //check for > and >=
