@@ -1,5 +1,5 @@
-#ifndef DATATYPES_H
-#define DATATYPES_H
+#ifndef VALUES_H
+#define VALUES_H
 #include <iostream>
 #include <vector>
 #include <cctype>
@@ -53,4 +53,5 @@ struct AST_NODE {
     AST_NODE* left;
     AST_NODE* right;
 };
+
 #endif
