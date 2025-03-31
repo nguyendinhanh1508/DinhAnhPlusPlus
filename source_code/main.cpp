@@ -1,8 +1,9 @@
 #include <iostream>
 #include <vector>
-#include "DataTypes.h"
-#include "Tokenizer.h"
+#include "Values.h"
+#include "Tokenizer.cpp"
 #include "Parser.h"
+#include "Evaluate.cpp"
 
 int main() {
     while (true) {
