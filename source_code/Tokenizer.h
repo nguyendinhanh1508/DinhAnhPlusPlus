@@ -59,8 +59,8 @@ std::vector<Token> tokenize(const std::string& input) {
                 str.push_back({ CHAR, 0, input[i++], {} });
             }
             if (i < input.size() && input[i] == '\"') {
-                if (in_list) list.back().push_back({ LIST, 0, 0, str });
-                else tokens.push_back({ LIST, 0, 0, str, "" });
+                if (in_list) list.back().push_back({ STRING, 0, 0,str });
+                else tokens.push_back({ STRING, 0, 0, str, "" });
                 i++;
             }
             else {
@@ -93,13 +93,13 @@ std::vector<Token> tokenize(const std::string& input) {
             while (i < input.size() && (isalnum(input[i]) || input[i] == '_')) {
                 variable += input[i++];
             }
-            if (variable == "out") tokens.push_back({ OUTPUT, 0, 0, {}, "" });
-            else if (variable == "in") tokens.push_back({ INPUT, 0, 0, {}, "" });
-            else if (variable == "new") tokens.push_back({ NEW_VAR, 0, 0, {}, "" });
-            else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "" });
-            else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "" });
-            else if (variable == "str") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "" });
-            else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "" });
+            if (variable == "out") tokens.push_back({ OUTPUT, 0, 0, {}, "output" });
+            else if (variable == "in") tokens.push_back({ INPUT, 0, 0, {}, "input" });
+            else if (variable == "new") tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
+            else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "integer" });
+            else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "character" });
+            else if (variable == "str") tokens.push_back({ STRING_IDENTIFIER, 0, 0, {}, "string" });
+            else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "list" });
             else tokens.push_back({ IDENTIFIER, 0, 0, {}, variable });
         }
         else if (input[i] == '>') { //check for > and >=
@@ -124,6 +124,17 @@ std::vector<Token> tokenize(const std::string& input) {
                 tokens.push_back({ EQUAL, 0, 0, {}, "==" });
             }
             else tokens.push_back({ ASSIGN, 0, 0, {}, "=" });
+            i++;
+        }
+        else if (input[i] == '!') { //check for !=
+            if (i < input.size() - 1 && input[i + 1] == '=') {
+                i++;
+                tokens.push_back({ NOT_EQUAL, 0, 0, {}, "!=" });
+            }
+            else {
+                std::cerr << "Syntax Error: Stray '!' found" << std::endl;
+                exit(1);
+            }
             i++;
         }
         else if (input[i] == '(') { //check for (
