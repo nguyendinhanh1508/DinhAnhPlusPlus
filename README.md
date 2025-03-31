@@ -12,6 +12,6 @@ Currently, these are the features of this language:
 - supports parentheses
 - supports comparisons
 # How to use this language
-create a text file named main.dpp
-compile the main_for_script.cpp file
-then type the command: ./main_for_script.exe main.dpp
+- create a text file named main.dpp
+- compile the main_for_script.cpp file
+- then type the command: ./main_for_script.exe main.dpp
