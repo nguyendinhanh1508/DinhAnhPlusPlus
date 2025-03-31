@@ -143,6 +143,19 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
         Token variable_name = tokens[index++];
         return new AST_NODE{ Token{INPUT, ' ', 0}, new AST_NODE{variable_name, nullptr, nullptr}, nullptr };
     }
+    else if (tokens[index].type == GETLINE) {
+        index++;
+        if (tokens[index].type != IDENTIFIER) {
+            std::cerr << "Syntax Error: Expected variable name after 'in'" << std::endl;
+            exit(1);
+        }
+        Token variable_name = tokens[index++];
+        if(variables_type[variable_name.name] != STRING) {
+            std::cerr << "Error: You cannot use getline for non-string values" << std::endl;
+            exit(1);
+        }
+        return new AST_NODE{ Token{GETLINE, ' ', 0}, new AST_NODE{variable_name, nullptr, nullptr}, nullptr };
+    }
     else if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
         Token var_token = tokens[index];
         index += 2;
