@@ -96,6 +96,7 @@ std::vector<Token> tokenize(const std::string& input) {
             if (variable == "out") tokens.push_back({ OUTPUT, 0, 0, {}, "output" });
             else if (variable == "in") tokens.push_back({ INPUT, 0, 0, {}, "input" });
             else if (variable == "getline") tokens.push_back({ GETLINE, 0, 0, {}, "input" });
+            else if (variable == "nextline") tokens.push_back({ CHAR, 0, 0, {}, "\n"});
             else if (variable == "new") tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
             else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "integer" });
             else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "character" });
