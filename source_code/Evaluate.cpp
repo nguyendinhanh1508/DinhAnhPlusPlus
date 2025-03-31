@@ -43,10 +43,9 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == OUTPUT) {
         EvaluateValue value = evaluate(node->left);
-        if (value.type == CHAR) std::cout << "> " << value.character << std::endl;
-        else if (value.type == INTEGER || value.type == BOOLEAN) std::cout << "> " << value.integer << std::endl;
+        if (value.type == CHAR) std::cout << value.character << std::endl;
+        else if (value.type == INTEGER || value.type == BOOLEAN) std::cout << value.integer << std::endl;
         else if (value.type == STRING) {
-            std::cout << "> ";
             for (auto it : value.list) {
                 std::cout << it.character;
             }
@@ -68,7 +67,6 @@ EvaluateValue evaluate(AST_NODE* node) {
             std::cerr << "Error: Undeclared variable '" << var_name << '\'' << std::endl;
             exit(1);
         }
-        std::cout << "> ";
         std::string input;
         std::cin >> input;
         if (variables_type[var_name] == INTEGER) {
