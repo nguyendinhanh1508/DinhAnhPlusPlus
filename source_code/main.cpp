@@ -20,6 +20,7 @@ int main() {
             continue;
         }
         EvaluateValue result = evaluate(root);
+        FREE_AST(root);
     }
     return 0;
 }
