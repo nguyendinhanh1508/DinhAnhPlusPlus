@@ -342,9 +342,7 @@ EvaluateValue evaluate(AST_NODE* node) {
                 list.push_back({ INTEGER, right_val.integer, 0, {} });
             }
             else if (right_val.type == LIST) {
-                for (auto it : right_val.list) {
-                    list.push_back(it);
-                }
+                list.push_back({ LIST, 0, 0, right_val.list });
             }
             else if (right_val.type == STRING) {
                 list.push_back({ STRING, 0, 0, right_val.list });
