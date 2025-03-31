@@ -23,7 +23,7 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
-    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST) {
+    if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == STRING) {
         AST_NODE* node = new AST_NODE{ tokens[index], nullptr, nullptr };
         index++;
         return node;
@@ -85,7 +85,7 @@ AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index) { //look for '+
 
 AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for comparisons
     AST_NODE* left = parse_lower(tokens, index);
-    while (tokens[index].type == EQUAL || tokens[index].type == MORE || tokens[index].type == LESS || tokens[index].type == MORE_EQUAL || tokens[index].type == LESS_EQUAL) {
+    while (tokens[index].type == EQUAL || tokens[index].type == MORE || tokens[index].type == LESS || tokens[index].type == MORE_EQUAL || tokens[index].type == LESS_EQUAL || tokens[index].type == NOT_EQUAL) {
         Token operation = tokens[index++];
         AST_NODE* right = parse_lower(tokens, index);
         AST_NODE* node = new AST_NODE{ operation, left, right };
@@ -97,14 +97,15 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for 
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
     if (tokens[index].type == NEW_VAR) {
         index++;
-        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != CHAR_IDENTIFIER && tokens[index].type != LIST_IDENTIFIER) {
+        if (tokens[index].type != INTEGER_IDENTIFIER && tokens[index].type != CHAR_IDENTIFIER && tokens[index].type != LIST_IDENTIFIER && tokens[index].type != STRING_IDENTIFIER) {
             std::cerr << "Syntax Error: Variable type needed after 'new'" << std::endl;
             exit(1);
         }
         TokenType var_type;
         if (tokens[index].type == INTEGER_IDENTIFIER) var_type = INTEGER;
-        if (tokens[index].type == CHAR_IDENTIFIER) var_type = CHAR;
-        if (tokens[index].type == LIST_IDENTIFIER) var_type = LIST;
+        else if (tokens[index].type == CHAR_IDENTIFIER) var_type = CHAR;
+        else if (tokens[index].type == LIST_IDENTIFIER) var_type = LIST;
+        else if (tokens[index].type == STRING_IDENTIFIER) var_type = STRING;
         index++;
         Token variable_name = tokens[index++];
         if (already_declared.count(variable_name.name)) {
@@ -116,22 +117,26 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             variables_integer[variable_name.name] = 0;
             variables_type[variable_name.name] = INTEGER;
         }
-        if (var_type == CHAR) {
+        else if (var_type == CHAR) {
             variables_char[variable_name.name] = ' ';
             variables_type[variable_name.name] = CHAR;
         }
-        if (var_type == LIST) {
+        else if (var_type == LIST) {
             variables_list[variable_name.name] = {};
             variables_type[variable_name.name] = LIST;
         }
+        else if (var_type == STRING) {
+            variables_list[variable_name.name] = {};
+            variables_type[variable_name.name] = STRING;
+        }
         return new AST_NODE{ variable_name, nullptr, nullptr };
     }
-    if (tokens[index].type == OUTPUT) {
+    else if (tokens[index].type == OUTPUT) {
         index++;
         AST_NODE* expression = parse_compare(tokens, index);
         return new AST_NODE{ Token{OUTPUT,' ', 0}, expression, nullptr };
     }
-    if (tokens[index].type == INPUT) {
+    else if (tokens[index].type == INPUT) {
         index++;
         if (tokens[index].type != IDENTIFIER) {
             std::cerr << "Syntax Error: Expected variable name after 'in'" << std::endl;
@@ -140,7 +145,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
         Token variable_name = tokens[index++];
         return new AST_NODE{ Token{INPUT, ' ', 0}, new AST_NODE{variable_name, nullptr, nullptr}, nullptr };
     }
-    if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
+    else if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
         Token var_token = tokens[index];
         index += 2;
         AST_NODE* expression = parse_compare(tokens, index);
@@ -151,13 +156,16 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
 
 EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == INTEGER) {
-        return { INTEGER, 0, node->token.integer, {} , ""};
+        return { INTEGER, 0, node->token.integer, {} , "" };
     }
-    if (node->token.type == CHAR) {
+    else if (node->token.type == CHAR) {
         return { CHAR, node->token.character, 0, {}, "" };
     }
-    if (node->token.type == LIST) {
-        return { LIST, 0, 0, node->token.list };
+    else if (node->token.type == LIST) {
+        return { LIST, 0, 0, node->token.list, "" };
+    }
+    else if (node->token.type == STRING) {
+        return { STRING, 0, 0, node->token.list, "" };
     }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
@@ -169,6 +177,9 @@ EvaluateValue evaluate(AST_NODE* node) {
         if (variables_type[node->token.name] == LIST) {
             return { LIST, 0, 0, variables_list[node->token.name], "" };
         }
+        if (variables_type[node->token.name] == STRING) {
+            return { STRING, 0, 0, variables_list[node->token.name], "" };
+        }
         std::cerr << "Error: Undefined variable '" << node->token.name << "'" << std::endl;
         exit(1);
     }
@@ -176,27 +187,18 @@ EvaluateValue evaluate(AST_NODE* node) {
         EvaluateValue value = evaluate(node->left);
         if (value.type == CHAR) std::cout << "> " << value.character << std::endl;
         else if (value.type == INTEGER) std::cout << "> " << value.integer << std::endl;
-        else if (value.type == LIST) {
-            bool is_string = true;
+        else if (value.type == STRING) {
+            std::cout << "> ";
             for (auto it : value.list) {
-                if (it.type != CHAR) {
-                    is_string = false;
-                    break;
-                }
+                std::cout << it.character;
             }
-            if (is_string) {
-                std::cout << "> ";
-                for (auto it : value.list) {
-                    std::cout << it.character;
-                }
-                std::cout << std::endl;
-            }
-            else {
-                std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
-                exit(1);
-            }
+            std::cout << std::endl;
         }
-        return {NONE, 0, 0, {}, ""};
+        else if (value.type == LIST) {
+            std::cerr << "Error: You cannot output the entire list in one go" << std::endl;
+            exit(1);
+        }
+        return { NONE, 0, 0, {}, "" };
     }
     if (node->token.type == INPUT) {
         if (!node->left || node->left->token.type != IDENTIFIER) {
@@ -217,11 +219,14 @@ EvaluateValue evaluate(AST_NODE* node) {
         else if (variables_type[var_name] == CHAR) {
             variables_char[var_name] = string_to_char(input);
         }
+        else if (variables_type[var_name] == STRING) {
+            variables_list[var_name] = string_to_list(input);
+        }
         else if (variables_type[var_name] == LIST) {
             std::cerr << "Error: You cannot input the entire list in one go" << std::endl;
             exit(1);
         }
-        return {NONE, 0, 0, {}, ""};
+        return { NONE, 0, 0, {}, "" };
     }
     EvaluateValue left_val = evaluate(node->left);
     if (node->token.type == ASSIGN) {
@@ -231,28 +236,45 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         std::string var_name = node->left->token.name;
         EvaluateValue value = evaluate(node->right);
-        if (variables_type[var_name] != value.type && !((variables_type[var_name] == CHAR && value.type == INTEGER) || (variables_type[var_name] == INTEGER && value.type == CHAR))) {
-            std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
-            exit(1);
-        }
         if (value.type == INTEGER) {
             if (variables_type[var_name] == CHAR) variables_char[var_name] = value.integer;
             else if (variables_type[var_name] == INTEGER) variables_integer[var_name] = value.integer;
+            else {
+                std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
+                exit(1);
+            }
         }
         if (value.type == CHAR) {
             if (variables_type[var_name] == CHAR) variables_char[var_name] = value.character;
             else if (variables_type[var_name] == INTEGER) variables_integer[var_name] = value.character;
+            else {
+                std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
+                exit(1);
+            }
         }
         if (value.type == LIST) {
             if (variables_type[var_name] == LIST) {
                 variables_list[var_name] = value.list;
+            }
+            else {
+                std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
+                exit(1);
+            }
+        }
+        if (value.type == STRING) {
+            if (variables_type[var_name] == STRING) {
+                variables_list[var_name] = value.list;
+            }
+            else {
+                std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
+                exit(1);
             }
         }
         return value;
     }
     EvaluateValue right_val = evaluate(node->right);
     if (node->token.type == GET_VALUE) {
-        if (left_val.type == LIST && right_val.type != LIST) {
+        if ((left_val.type == LIST || left_val.type == STRING) && right_val.type != LIST && right_val.type != STRING) {
             int list_index = -1;
             if (right_val.type == CHAR) list_index = (int)right_val.character;
             else if (right_val.type == INTEGER) list_index = right_val.integer;
@@ -269,6 +291,13 @@ EvaluateValue evaluate(AST_NODE* node) {
             else if (left_val.list[list_index].type == LIST) {
                 return { LIST, 0, 0, left_val.list[list_index].list };
             }
+            else if (left_val.list[list_index].type == STRING) {
+                return { STRING, 0, 0, left_val.list[list_index].list };
+            }
+        }
+        else {
+            std::cerr << "Error: List index cannot be a list or a string" << std::endl;
+            exit(1);
         }
     }
     if (node->token.type == PLUS) {
@@ -283,6 +312,10 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot add a list onto an integer" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot add a string onto an integer" << std::endl;
+                exit(1);
+            }
         }
         else if (left_val.type == CHAR) {
             if (right_val.type == CHAR) {
@@ -295,21 +328,48 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot add a list onto a character" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot add a string onto a character" << std::endl;
+                exit(1);
+            }
         }
         else if (left_val.type == LIST) {
             std::vector<list_element> list = left_val.list;
             if (right_val.type == CHAR) {
-                list.push_back({ 0, right_val.character });
+                list.push_back({ CHAR, 0, right_val.character, {} });
             }
             else if (right_val.type == INTEGER) {
-                list.push_back({ right_val.integer, 0 });
+                list.push_back({ INTEGER, right_val.integer, 0, {} });
             }
             else if (right_val.type == LIST) {
                 for (auto it : right_val.list) {
                     list.push_back(it);
                 }
             }
+            else if (right_val.type == STRING) {
+                list.push_back({ STRING, 0, 0, right_val.list });
+            }
             return { LIST, 0, 0, list, "" };
+        }
+        else if (left_val.type == STRING) {
+            std::vector<list_element> str = left_val.list;
+            if (right_val.type == CHAR) {
+                str.push_back({ CHAR, 0, right_val.character, {} });
+            }
+            else if (right_val.type == INTEGER) {
+                std::cerr << "You cannot add an integer onto a string" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                for (auto it : right_val.list) {
+                    str.push_back(it);
+                }
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot add a list onto a string" << std::endl;
+                exit(1);
+            }
+            return { STRING, 0, 0, str, "" };
         }
     }
     if (node->token.type == MINUS) {
@@ -324,8 +384,12 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot subtract a list from an integer" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot subtract a string from an integer" << std::endl;
+                exit(1);
+            }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer - right_val.character), {}, "" };
             }
@@ -336,9 +400,17 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot subtract a list from a character" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot subtract a string from a character" << std::endl;
+                exit(1);
+            }
         }
-        if (left_val.type == LIST) {
-            std::cerr << "You cannot subtract things from a list" << std::endl;
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot subtract from a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot subtract from a string" << std::endl;
             exit(1);
         }
     }
@@ -354,8 +426,12 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot multiply an integer by a list" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot multiply an integer by a string" << std::endl;
+                exit(1);
+            }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer * right_val.character), {}, "" };
             }
@@ -366,9 +442,17 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot multiply a character by a list" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot multiply a character by a string" << std::endl;
+                exit(1);
+            }
         }
-        if (left_val.type == LIST) {
-            std::cerr << "You cannot multiply the list by anything" << std::endl;
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot multiply the list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot multiply the string" << std::endl;
             exit(1);
         }
     }
@@ -392,8 +476,12 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot divide a character by a list" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot divide a character by a string" << std::endl;
+                exit(1);
+            }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer / right_val.character), {}, "" };
             }
@@ -404,15 +492,23 @@ EvaluateValue evaluate(AST_NODE* node) {
                 std::cerr << "You cannot divide an integer by a list" << std::endl;
                 exit(1);
             }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot divide an integer by a string" << std::endl;
+                exit(1);
+            }
         }
-        if (left_val.type == LIST) {
-            std::cerr << "You cannot divide a list by anything" << std::endl;
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot divide a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot divide a string" << std::endl;
             exit(1);
         }
     }
     if (node->token.type == MORE) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare a list to anything" << std::endl;
+            std::cerr << "You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -423,7 +519,7 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character > right_val.character), {}, "" };
             }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer > right_val.character), {}, "" };
             }
@@ -431,10 +527,19 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer > right_val.integer), {}, "" };
             }
         }
+        else if (left_val.type == STRING) {
+            if (right_val.type == STRING) {
+                return { INTEGER, 0, (int)(list_to_string(left_val.list) > list_to_string(right_val.list)), {}, "" };
+            }
+            else {
+                std::cerr << "Error: Cannot compare non-string values to a string" << std::endl;
+                exit(1);
+            }
+        }
     }
     if (node->token.type == MORE_EQUAL) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare a list to anything" << std::endl;
+            std::cerr << "You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -445,7 +550,7 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character >= right_val.character), {}, "" };
             }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer >= right_val.character), {}, "" };
             }
@@ -453,10 +558,19 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer >= right_val.integer), {}, "" };
             }
         }
+        else if (left_val.type == STRING) {
+            if (right_val.type == STRING) {
+                return { INTEGER, 0, (int)(list_to_string(left_val.list) >= list_to_string(right_val.list)), {}, "" };
+            }
+            else {
+                std::cerr << "Error: Cannot compare non-string values to a string" << std::endl;
+                exit(1);
+            }
+        }
     }
     if (node->token.type == LESS) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare a list to anything" << std::endl;
+            std::cerr << "You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -467,12 +581,21 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character < right_val.character), {}, "" };
             }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer < right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
                 return { INTEGER, 0, (int)(left_val.integer < right_val.integer), {}, "" };
+            }
+        }
+        else if (left_val.type == STRING) {
+            if (right_val.type == STRING) {
+                return { INTEGER, 0, (int)(list_to_string(left_val.list) < list_to_string(right_val.list)), {}, "" };
+            }
+            else {
+                std::cerr << "Error: Cannot compare non-string values to a string" << std::endl;
+                exit(1);
             }
         }
     }
@@ -489,7 +612,7 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character <= right_val.character), {}, "" };
             }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer <= right_val.character), {}, "" };
             }
@@ -497,10 +620,19 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer <= right_val.integer), {}, "" };
             }
         }
+        else if (left_val.type == STRING) {
+            if (right_val.type == STRING) {
+                return { INTEGER, 0, (int)(list_to_string(left_val.list) <= list_to_string(right_val.list)), {}, "" };
+            }
+            else {
+                std::cerr << "Error: Cannot compare non-string values to a string" << std::endl;
+                exit(1);
+            }
+        }
     }
     if (node->token.type == EQUAL) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare a list to anything" << std::endl;
+            std::cerr << "You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -511,12 +643,52 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character == right_val.character), {}, "" };
             }
         }
-        if (left_val.type == INTEGER) {
+        else if (left_val.type == INTEGER) {
             if (right_val.type == CHAR) {
                 return { INTEGER, 0, (int)(left_val.integer == right_val.character), {}, "" };
             }
             else if (right_val.type == INTEGER) {
                 return { INTEGER, 0, (int)(left_val.integer == right_val.integer), {}, "" };
+            }
+        }
+        else if (left_val.type == STRING) {
+            if (right_val.type == STRING) {
+                return { INTEGER, 0, (int)(list_to_string(left_val.list) == list_to_string(right_val.list)), {}, "" };
+            }
+            else {
+                std::cerr << "Error: Cannot compare non-string values to a string" << std::endl;
+                exit(1);
+            }
+        }
+    }
+    if (node->token.type == NOT_EQUAL) {
+        if (left_val.type == LIST || right_val.type == LIST) {
+            std::cerr << "You cannot compare lists" << std::endl;
+            exit(1);
+        }
+        if (left_val.type == CHAR) {
+            if (right_val.type == INTEGER) {
+                return { INTEGER, 0, (int)(left_val.character != right_val.integer), {}, "" };
+            }
+            else if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.character != right_val.character), {}, "" };
+            }
+        }
+        else if (left_val.type == INTEGER) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer != right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER) {
+                return { INTEGER, 0, (int)(left_val.integer != right_val.integer), {}, "" };
+            }
+        }
+        else if (left_val.type == STRING) {
+            if (right_val.type == STRING) {
+                return { INTEGER, 0, (int)(list_to_string(left_val.list) != list_to_string(right_val.list)), {}, "" };
+            }
+            else {
+                std::cerr << "Error: Cannot compare non-string values to a string" << std::endl;
+                exit(1);
             }
         }
     }
