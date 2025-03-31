@@ -87,6 +87,27 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         return { NONE, 0, 0, {}, "" };
     }
+    if (node->token.type == GETLINE) {
+        if (!node->left || node->left->token.type != IDENTIFIER) {
+            std::cerr << "Error: 'in' must be followed by a variable name" << std::endl;
+            exit(1);
+        }
+        std::string var_name = node->left->token.name;
+        if (variables_type.count(var_name) == 0) {
+            std::cerr << "Error: Undeclared variable '" << var_name << '\'' << std::endl;
+            exit(1);
+        }
+        std::string input;
+        std::getline(std::cin, input);
+        if (variables_type[var_name] == STRING) {
+            variables_list[var_name] = string_to_list(input);
+        }
+        else {
+            std::cerr << "Error: You cannot use getline for non-string values" << std::endl;
+            exit(1);
+        }
+        return { NONE, 0, 0, {}, "" };
+    }
     EvaluateValue left_val = evaluate(node->left);
     if (node->token.type == ASSIGN) {
         if (node->left->token.type != IDENTIFIER) {
