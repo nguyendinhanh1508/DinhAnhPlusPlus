@@ -1,14 +1,13 @@
 # D++
 Dinh Anh's Programming Language
 This is an intepreted, high-level programming language that is still WIP.
-The base of this language is C++.
-Currently, these are the features:
+The language I use to interpret this is C++.
+Currently, these are the features of this language:
 - calculate
 - create variable
 - assign value
 - input/output
-- supports integer, char, strings, 
-- if you want to use boolean values, use integers instead, i'll work on boolean after
-- supports lists
+- supports integers, characters, strings, booleans, lists
+- you can assign all of the types of values above to a list
 - supports parentheses
 - supports comparisons
