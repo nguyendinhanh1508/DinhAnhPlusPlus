@@ -97,12 +97,26 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "in") tokens.push_back({ INPUT, 0, 0, {}, "input" });
             else if (variable == "getline") tokens.push_back({ GETLINE, 0, 0, {}, "input" });
             else if (variable == "nextline") tokens.push_back({ CHAR, '\n', 0, {}, ""});
-            else if (variable == "new") tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
-            else if (variable == "int") tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "integer" });
-            else if (variable == "char") tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "character" });
-            else if (variable == "str") tokens.push_back({ STRING_IDENTIFIER, 0, 0, {}, "string" });
-            else if (variable == "list") tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "list" });
-            else if (variable == "bool") tokens.push_back({ BOOLEAN_IDENTIFIER, 0, 0, {}, "boolean" });
+            else if (variable == "int") {
+                tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
+                tokens.push_back({ INTEGER_IDENTIFIER, 0, 0, {}, "integer" });
+            }
+            else if (variable == "char") {
+                tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
+                tokens.push_back({ CHAR_IDENTIFIER, 0, 0, {}, "character" });
+            }
+            else if (variable == "str") {
+                tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
+                tokens.push_back({ STRING_IDENTIFIER, 0, 0, {}, "string" });
+            }
+            else if (variable == "list") {
+                tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
+                tokens.push_back({ LIST_IDENTIFIER, 0, 0, {}, "list" });
+            }
+            else if (variable == "bool") {
+                tokens.push_back({ NEW_VAR, 0, 0, {}, "create" });
+                tokens.push_back({ BOOLEAN_IDENTIFIER, 0, 0, {}, "boolean" });
+            }
             else if (variable == "true") {
                 if (in_list) list.back().push_back({ BOOLEAN, 1, 0 });
                 else tokens.push_back({ BOOLEAN, 0, 1, {}, "" });
