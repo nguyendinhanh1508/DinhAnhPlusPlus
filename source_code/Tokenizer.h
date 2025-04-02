@@ -15,8 +15,8 @@ std::vector<Token> tokenize(const std::string& input) {
             continue;
         }
         else if (input[i] == ':') {
-            func = false;
             in_func = true;
+            i++;
         }
         else if (input[i] == '[') { //check for indices
             if (in_func) cur_func_content.push_back({ GET_VALUE, 0, 0, {}, "" });
@@ -196,8 +196,14 @@ std::vector<Token> tokenize(const std::string& input) {
                 cur_func_content.clear();
             }
             else if (variable == "endfunc") {
+                if (!in_func) {
+                    std::cerr << "Error: endfunc outside function" << std::endl;
+                    exit(1);
+                }
+                function_parameter[cur_func_name] = cur_func_parameter;
                 function_content[cur_func_name] = cur_func_content;
                 in_func = false;
+                func = false;
             }
             else {
                 if (in_parameter) {
@@ -244,7 +250,10 @@ std::vector<Token> tokenize(const std::string& input) {
                 if (in_func) cur_func_content.push_back({ EQUAL, 0, 0, {}, "==" });
                 else tokens.push_back({ EQUAL, 0, 0, {}, "==" });
             }
-            else tokens.push_back({ ASSIGN, 0, 0, {}, "=" });
+            else {
+                if (in_func) cur_func_content.push_back({ ASSIGN, 0, 0, {}, "=" });
+                else tokens.push_back({ ASSIGN, 0, 0, {}, "=" });
+            }
             i++;
         }
         else if (input[i] == '!') { //check for !=
@@ -260,7 +269,9 @@ std::vector<Token> tokenize(const std::string& input) {
             i++;
         }
         else if (input[i] == '(') { //check for (
-            if (func) in_parameter = true;
+            if (func) {
+                in_parameter = true;
+            }
             else {
                 if (in_func) cur_func_content.push_back({ LEFT_PARENTHESIS, 0, 0, {}, "(" });
                 else tokens.push_back({ LEFT_PARENTHESIS, 0, 0, {}, "(" });
@@ -269,7 +280,6 @@ std::vector<Token> tokenize(const std::string& input) {
         }
         else if (input[i] == ')') { //check for )
             if (in_parameter) {
-                function_parameter[cur_func_name] = cur_func_parameter;
                 in_parameter = false;
             }
             else {
