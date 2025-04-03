@@ -15,4 +15,4 @@ Currently, these are the features of this language:
 # How to use this language
 - create a text file named main.dpp
 - compile the main_for_script.cpp file
-- then type the command: ./main_for_script.exe main.dpp
+- then type the command: ./main_for_script.exe main.dpp in terminal
