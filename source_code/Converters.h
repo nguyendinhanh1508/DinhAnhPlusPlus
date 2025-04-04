@@ -26,4 +26,13 @@ std::string list_to_string(std::vector<list_element> list) {
 char string_to_char(std::string str) {
     return str[0];
 }
+
+void push(Token token) {
+    if (in_function_body) {
+        cur_function_body.push_back(token);
+    }
+    else {
+        tokens.push_back(token);
+    }
+}
 #endif
