@@ -14,6 +14,7 @@ AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
     if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == STRING || tokens[index].type == BOOLEAN) {
@@ -51,6 +52,9 @@ AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look 
         index++;
         return expression;
     }
+    else if (tokens[index].type == CURLY_LEFT) {
+        return parse_list(tokens, index);
+    }
     return parse_index(tokens, index);
 }
 
@@ -85,6 +89,40 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for 
         left = node;
     }
     return left;
+}
+
+AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index) {
+    if (tokens[index].type != CURLY_LEFT){
+        return nullptr;
+    }
+    index++;
+    std::vector<AST_NODE*> list;
+    while (index < tokens.size() && tokens[index].type != CURLY_RIGHT) {
+        if (tokens[index].type == COMMA){
+            index++;
+            continue;
+        }
+        AST_NODE* cur_value = parse_compare(tokens, index);
+        if (cur_value){
+            list.push_back(cur_value);
+        } else {
+            std::cerr << "Error: Invalid list element" << std::endl;
+            exit(1);
+        }
+    }
+    if (index < tokens.size() && tokens[index].type == CURLY_RIGHT){
+        index++;
+    } else {
+        std::cerr << "Syntax Error: Missing closing curly bracket for list" << std::endl;
+        exit(1);
+    }
+    AST_NODE* list_node = new AST_NODE{Token{LIST, 0, 0, {}, "list"}, nullptr, nullptr};
+    AST_NODE* current = list_node;
+    for(auto* it : list) {
+        current->right = it;
+        current = it;
+    }
+    return list_node;
 }
 
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
@@ -150,7 +188,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             exit(1);
         }
         Token variable_name = tokens[index++];
-        if(variables_type[variable_name.name] != STRING) {
+        if (variables_type[variable_name.name] != STRING) {
             std::cerr << "Error: You cannot use getline for non-string values" << std::endl;
             exit(1);
         }
