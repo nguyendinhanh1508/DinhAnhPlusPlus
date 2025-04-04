@@ -13,7 +13,9 @@ enum TokenType {
     ASSIGN, IDENTIFIER,
     OUTPUT, INPUT, GETLINE, 
     NEW_VAR,
-    LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
+    COMMA,
+    LEFT_PARENTHESIS, RIGHT_PARENTHESIS, 
+    CURLY_LEFT, CURLY_RIGHT, 
     GET_VALUE, INDEX_END,
     MORE, MORE_EQUAL, LESS, LESS_EQUAL, EQUAL, NOT_EQUAL,
     END, NONE
@@ -32,10 +34,6 @@ std::unordered_map<std::string, std::vector<list_element>> variables_list;
 std::unordered_map<std::string, TokenType> variables_type;
 std::unordered_set<std::string> already_declared;
 
-bool func = false;
-bool in_func = false;
-bool in_parameter = false;
-
 struct Token {
     TokenType type;
     char character;
@@ -43,12 +41,6 @@ struct Token {
     std::vector<list_element> list;
     std::string name;
 };
-
-std::unordered_map<std::string, std::vector<Token>> function_content;
-std::unordered_map<std::string, std::vector<std::string>> function_parameter;
-std::vector<std::string> cur_func_parameter;
-std::vector<Token> cur_func_content;
-std::string cur_func_name;
 
 struct EvaluateValue {
     TokenType type;
