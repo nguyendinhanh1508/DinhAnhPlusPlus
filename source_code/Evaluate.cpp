@@ -19,22 +19,22 @@ EvaluateValue evaluate(AST_NODE* node) {
         while (cur) {
             EvaluateValue evaluated_val = evaluate(cur);
             list_element list_val;
-            if (evaluated_val.type == INTEGER){
-                list_val = {INTEGER, evaluated_val.integer};
+            if (evaluated_val.type == INTEGER) {
+                list_val = { INTEGER, evaluated_val.integer };
             }
             else if (evaluated_val.type == CHAR) {
-                list_val = {CHAR, 0, evaluated_val.character};
+                list_val = { CHAR, 0, evaluated_val.character };
             }
             else if (evaluated_val.type == STRING) {
-                list_val = {STRING, 0, 0, evaluated_val.list};
+                list_val = { STRING, 0, 0, evaluated_val.list };
             }
             else if (evaluated_val.type == LIST) {
-                list_val = {LIST, 0, 0, evaluated_val.list};
+                list_val = { LIST, 0, 0, evaluated_val.list };
             }
             list.push_back(list_val);
             cur = cur->right;
         }
-        return { LIST, 0, 0, list};
+        return { LIST, 0, 0, list };
     }
     else if (node->token.type == STRING) {
         return { STRING, 0, 0, node->token.list, "" };
