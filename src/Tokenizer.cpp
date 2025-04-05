@@ -123,6 +123,9 @@ std::vector<Token> tokenize(const std::string& input) {
             else if (variable == "false") {
                 push({ BOOLEAN, 0, 0, {}, "" });
             }
+            else if (variable == "return") {
+                push({ RETURN });
+            }
             else push({ IDENTIFIER, 0, 0, {}, variable });
         }
         else if (input[i] == '>') { //check for > and >=
