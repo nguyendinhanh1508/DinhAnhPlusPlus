@@ -5,7 +5,11 @@
 #include "Parser.h"
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 #include "Storage.h"
+#include <algorithm>
+
+//we should always skip END type, our code cannot handle that
 
 EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == INTEGER) {
@@ -43,6 +47,70 @@ EvaluateValue evaluate(AST_NODE* node) {
     else if (node->token.type == BOOLEAN) {
         return { BOOLEAN, 0, node->token.integer, {}, "" };
     }
+    else if (node->token.type == FUNCTION_CALL) {
+        std::string func_name = node->token.name;
+        if (function_body.count(func_name) == 0) {
+            std::cerr << "Error: Undefined function" << std::endl;
+            exit(1);
+        }
+        if (node->children.size() < function_arguments[func_name].size()) {
+            std::cerr << "Error: Missing argument for function '" << func_name << "'" << std::endl;
+            exit(1);
+        }
+        else if (node->children.size() > function_arguments[func_name].size()) {
+            std::cerr << "Error: Arguments overload for function '" << func_name << "'" << std::endl;
+            exit(1);
+        }
+        std::vector<EvaluateValue> arguments;
+        for (auto it : node->children) {
+            arguments.push_back(evaluate(it));
+        }
+        auto old_variables_integer = variables_integer;
+        auto old_variables_char = variables_char;
+        auto old_variables_list = variables_list;
+        auto old_variables_type = variables_type;
+        auto old_already_declared = already_declared;
+        for (size_t i = 0; i < (int)arguments.size(); i++) {
+            std::string arg_name = function_arguments[func_name][i];
+            EvaluateValue arg_val = arguments[i];
+            already_declared.insert(arg_name);
+            variables_type[arg_name] = arg_val.type;
+            if (arg_val.type == INTEGER || arg_val.type == BOOLEAN) {
+                variables_integer[arg_name] = arg_val.integer;
+            }
+            else if (arg_val.type == CHAR) {
+                variables_char[arg_name] = arg_val.character;
+            }
+            else if (arg_val.type == LIST || arg_val.type == STRING) {
+                variables_list[arg_name] = arg_val.list;
+            }
+        }
+        EvaluateValue res{NONE};
+        std::vector<Token> func_tokens = function_body[func_name];
+        size_t func_idx = 0;
+        while (func_idx < func_tokens.size()) {
+            if (func_tokens[func_idx].type == END){
+                func_idx++;
+                continue;
+            }
+            AST_NODE* cur_root = parse_language(func_tokens, func_idx);
+            if (cur_root) {
+                if (cur_root->token.type == RETURN) {
+                    res = evaluate(cur_root->left);
+                    FREE_AST(cur_root);
+                    break;
+                }
+            }
+            res = evaluate(cur_root);
+            FREE_AST(cur_root);
+        }
+        variables_type = old_variables_type;
+        variables_integer = old_variables_integer;
+        variables_char = old_variables_char;
+        variables_list = old_variables_list;
+        already_declared = old_already_declared;
+        return res;
+    }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
             return { INTEGER, 0, variables_integer[node->token.name], {},"" };
@@ -63,7 +131,8 @@ EvaluateValue evaluate(AST_NODE* node) {
         exit(1);
     }
     if (node->token.type == OUTPUT) {
-        EvaluateValue value = evaluate(node->left);
+        EvaluateValue value = {NONE};
+        if(node->left) value = evaluate(node->left);
         if (value.type == CHAR) std::cout << value.character;
         else if (value.type == INTEGER || value.type == BOOLEAN) std::cout << value.integer;
         else if (value.type == STRING) {
