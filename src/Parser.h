@@ -6,6 +6,7 @@
 #include "Values.h"
 #include <string>
 #include <unordered_set>
+#include "Storage.h"
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index);
