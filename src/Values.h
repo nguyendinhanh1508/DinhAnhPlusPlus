@@ -8,7 +8,7 @@
 
 enum TokenType {
     INTEGER, CHAR, LIST, STRING, BOOLEAN, FUNCTION, INDEX,
-    FUNCTION_ARG, RETURN,
+    FUNCTION_CALL, RETURN,
     INTEGER_IDENTIFIER, CHAR_IDENTIFIER,
     LIST_IDENTIFIER, STRING_IDENTIFIER, BOOLEAN_IDENTIFIER,
     FUNCTION_IDENTIFIER,
@@ -51,6 +51,7 @@ struct AST_NODE {
     Token token;
     AST_NODE* left;
     AST_NODE* right;
+    std::vector<AST_NODE*> children;
 };
 
 #endif
