@@ -5,6 +5,7 @@
 #include "Tokenizer.cpp"
 #include "Parser.h"
 #include "Evaluate.cpp"
+#include "Storage.h"
 
 int main(int argc, char* argv[]) {
     std::ifstream file(argv[1]);
