@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include "Storage.h"
 
+//we should always skip END type, our code cannot handle that
+
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index);
@@ -16,8 +18,12 @@ AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index);
 
-AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names
+AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names and functioncalls
+    if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == LEFT_PARENTHESIS && function_body.count(tokens[index].name)) {
+        return parse_function_arg(tokens, index);
+    }
     if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == STRING || tokens[index].type == BOOLEAN) {
         AST_NODE* node = new AST_NODE{ tokens[index], nullptr, nullptr };
         index++;
@@ -128,6 +134,39 @@ AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index) { //look for lis
     return list_node;
 }
 
+AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index) {
+    std::string func_name = tokens[index++].name;
+    if(tokens[index].type != LEFT_PARENTHESIS){
+        return nullptr;
+    }
+    index++;
+    std::vector<AST_NODE*> arguments;
+    while (index < tokens.size() && tokens[index].type != RIGHT_PARENTHESIS) {
+        if (tokens[index].type == COMMA) {
+            index++;
+            continue;
+        }
+        AST_NODE* cur_val = parse_compare(tokens, index);
+        if(cur_val) {
+            arguments.push_back(cur_val);
+        }
+        else {
+            std::cerr << "Error: Invalid argument" << std::endl;
+            exit(1);
+        }
+    }
+    if (index < tokens.size() && tokens[index].type == RIGHT_PARENTHESIS) {
+        index++;
+    }
+    else {
+        std::cerr << "Syntax Error: Missing closing parenthesis for function argument" << std::endl;
+        exit(1);
+    }
+    AST_NODE* arg_node = new AST_NODE{Token{FUNCTION_CALL, 0, 0, {}, func_name}, nullptr, nullptr};
+    arg_node->children = arguments;
+    return arg_node;
+}
+
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
     if (tokens[index].type == NEW_VAR) {
         index++;
@@ -215,6 +254,11 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             cur_function_name = variable_name.name;
             return new AST_NODE{ variable_name, nullptr, nullptr };
         }
+    }
+    else if (tokens[index].type == RETURN) {
+        index++;
+        AST_NODE* expression = parse_compare(tokens, index);
+        return new AST_NODE{ Token{RETURN}, expression, nullptr};
     }
     else if (tokens[index].type == OUTPUT) {
         index++;
