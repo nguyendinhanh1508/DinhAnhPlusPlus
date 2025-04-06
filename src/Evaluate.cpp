@@ -308,6 +308,300 @@ EvaluateValue evaluate(AST_NODE* node) {
             exit(1);
         }
     }
+    if (node->token.type == AND) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer & (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer & right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character & (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character & right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
+    if (node->token.type == OR) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer | (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer | right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character | (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character | right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
+    if (node->token.type == XOR) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer ^ (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer ^ right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character ^ (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character ^ right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
+    if (node->token.type == LEFT_SHIFT) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer << (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer << right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character << (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character << right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
+    if (node->token.type == RIGHT_SHIFT) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer >> (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer >> right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character >> (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character >> right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
+    if (node->token.type == AND_BOOL) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer && (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer && right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character && (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character && right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
+    if (node->token.type == OR_BOOL) {
+        if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)(left_val.integer || (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)(left_val.integer || right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == CHAR) {
+            if (right_val.type == CHAR) {
+                return { INTEGER, 0, (int)((int)left_val.character || (int)right_val.character), {}, "" };
+            }
+            else if (right_val.type == INTEGER || right_val.type == BOOLEAN) {
+                return { INTEGER, 0, (int)((int)left_val.character || right_val.integer), {}, "" };
+            }
+            else if (right_val.type == LIST) {
+                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                exit(1);
+            }
+            else if (right_val.type == STRING) {
+                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                exit(1);
+            }
+        }
+        else if (left_val.type == LIST) {
+            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            exit(1);
+        }
+        else if (left_val.type == STRING) {
+            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            exit(1);
+        }
+    }
     if (node->token.type == PLUS) {
         if (left_val.type == INTEGER || left_val.type == BOOLEAN) {
             if (right_val.type == CHAR) {
