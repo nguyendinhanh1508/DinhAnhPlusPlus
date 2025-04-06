@@ -141,14 +141,21 @@ AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index) {
     }
     index++;
     std::vector<AST_NODE*> arguments;
+    size_t arg_index = 0;
     while (index < tokens.size() && tokens[index].type != RIGHT_PARENTHESIS) {
         if (tokens[index].type == COMMA) {
             index++;
             continue;
         }
         AST_NODE* cur_val = parse_compare(tokens, index);
-        if(cur_val) {
+        if (function_arguments[func_name][arg_index].type == MUTABLE){
+            cur_val->ismutable = true;
             arguments.push_back(cur_val);
+            arg_index++;
+        }
+        else if(cur_val) {
+            arguments.push_back(cur_val);
+            arg_index++;
         }
         else {
             std::cerr << "Error: Invalid argument" << std::endl;
@@ -219,14 +226,19 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                 exit(1);
             }
             else index++;
-            std::vector<std::string> args;
+            std::vector<function_parameter> args;
             while (index < tokens.size() && tokens[index].type != RIGHT_PARENTHESIS) {
                 if (tokens[index].type == COMMA) {
                     index++;
                     continue;
                 }
+                else if (tokens[index].type == REFERENCE) {
+                    index++;
+                    args.push_back({tokens[index].name, MUTABLE});
+                    index++;
+                }
                 else if (tokens[index].type == IDENTIFIER) {
-                    args.push_back(tokens[index].name);
+                    args.push_back({tokens[index].name, IDENTIFIER});
                     index++;
                 }
                 else {
@@ -252,6 +264,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             else index++;
             in_function_body++;
             cur_function_name = variable_name.name;
+            for(auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
             return new AST_NODE{ variable_name, nullptr, nullptr };
         }
     }
