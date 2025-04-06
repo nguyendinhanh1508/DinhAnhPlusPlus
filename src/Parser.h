@@ -16,6 +16,7 @@ AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_bool(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index);
@@ -36,7 +37,7 @@ AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for in
     AST_NODE* left = parse(tokens, index);
     while (index < tokens.size() && tokens[index].type == GET_VALUE) {
         index++;
-        AST_NODE* expression = parse_compare(tokens, index);
+        AST_NODE* expression = parse_bool(tokens, index);
         if (tokens[index].type != INDEX_END) {
             std::cerr << "Syntax Error: Expected ']' after index" << std::endl;
             exit(1);
@@ -76,9 +77,9 @@ AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index) { //look for '
     return left;
 }
 
-AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index) { //look for '+' and '-'
+AST_NODE* parse_lower(std::vector<Token>& tokens, size_t& index) { //look for '+', '-', '^', '|', '&', '>>' and '<<'
     AST_NODE* left = parse_higher(tokens, index);
-    while (tokens[index].type == PLUS || tokens[index].type == MINUS) {
+    while (tokens[index].type == PLUS || tokens[index].type == MINUS || tokens[index].type == XOR || tokens[index].type == OR || tokens[index].type == AND || tokens[index].type == LEFT_SHIFT || tokens[index].type == RIGHT_SHIFT) {
         Token operation = tokens[index++];
         AST_NODE* right = parse_higher(tokens, index);
         AST_NODE* node = new AST_NODE{ operation, left, right };
@@ -98,6 +99,17 @@ AST_NODE* parse_compare(std::vector<Token>& tokens, size_t& index) { //look for 
     return left;
 }
 
+AST_NODE* parse_bool(std::vector<Token>& tokens, size_t& index) { //look for comparisons
+    AST_NODE* left = parse_compare(tokens, index);
+    while (tokens[index].type == AND_BOOL || tokens[index].type == OR_BOOL) {
+        Token operation = tokens[index++];
+        AST_NODE* right = parse_compare(tokens, index);
+        AST_NODE* node = new AST_NODE{ operation, left, right };
+        left = node;
+    }
+    return left;
+}
+
 AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index) { //look for lists
     if (tokens[index].type != CURLY_LEFT) {
         return nullptr;
@@ -109,7 +121,7 @@ AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index) { //look for lis
             index++;
             continue;
         }
-        AST_NODE* cur_value = parse_compare(tokens, index);
+        AST_NODE* cur_value = parse_bool(tokens, index);
         if (cur_value) {
             list.push_back(cur_value);
         }
@@ -147,7 +159,7 @@ AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index) {
             index++;
             continue;
         }
-        AST_NODE* cur_val = parse_compare(tokens, index);
+        AST_NODE* cur_val = parse_bool(tokens, index);
         if (function_arguments[func_name][arg_index].type == MUTABLE){
             cur_val->ismutable = true;
             arguments.push_back(cur_val);
@@ -232,7 +244,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                     index++;
                     continue;
                 }
-                else if (tokens[index].type == REFERENCE) {
+                else if (tokens[index].type == AND) {
                     index++;
                     args.push_back({tokens[index].name, MUTABLE});
                     index++;
@@ -270,12 +282,12 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
     }
     else if (tokens[index].type == RETURN) {
         index++;
-        AST_NODE* expression = parse_compare(tokens, index);
+        AST_NODE* expression = parse_bool(tokens, index);
         return new AST_NODE{ Token{RETURN}, expression, nullptr};
     }
     else if (tokens[index].type == OUTPUT) {
         index++;
-        AST_NODE* expression = parse_compare(tokens, index);
+        AST_NODE* expression = parse_bool(tokens, index);
         return new AST_NODE{ Token{OUTPUT,' ', 0}, expression, nullptr };
     }
     else if (tokens[index].type == INPUT) {
@@ -303,10 +315,10 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
     else if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
         Token var_token = tokens[index];
         index += 2;
-        AST_NODE* expression = parse_compare(tokens, index);
+        AST_NODE* expression = parse_bool(tokens, index);
         return new AST_NODE{ Token{ASSIGN, ' ', 0, {}, "="}, new AST_NODE{var_token, nullptr, nullptr}, expression };
     }
-    return parse_compare(tokens, index);
+    return parse_bool(tokens, index);
 }
 
 void FREE_AST(AST_NODE* node) { //delete the AST =)
