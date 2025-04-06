@@ -9,14 +9,15 @@
 
 int in_list = 0;
 int in_function_body = 0;
+std::vector<Token> tokens;
 std::unordered_map<std::string, int> variables_integer;
 std::unordered_map<std::string, char> variables_char;
 std::unordered_map<std::string, std::vector<list_element>> variables_list;
 std::unordered_map<std::string, TokenType> variables_type;
 std::unordered_set<std::string> already_declared;
-std::unordered_map<std::string, std::vector<std::string>> function_arguments;
-std::vector<Token> tokens;
+std::unordered_map<std::string, std::vector<function_parameter>> function_arguments;
 std::unordered_map<std::string, std::vector<Token>> function_body;
+std::unordered_map<std::string, std::vector<std::string>> function_global_variables;
 std::vector<Token> cur_function_body;
 std::string cur_function_name;
 
