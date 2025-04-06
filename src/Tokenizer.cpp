@@ -128,6 +128,10 @@ std::vector<Token> tokenize(const std::string& input) {
             }
             else push({ IDENTIFIER, 0, 0, {}, variable });
         }
+        else if (input[i] == '&') {
+            push({REFERENCE});
+            i++;
+        }
         else if (input[i] == '>') { //check for > and >=
             if (i < input.size() - 1 && input[i + 1] == '=') {
                 i++;
