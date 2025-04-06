@@ -13,10 +13,10 @@
 
 EvaluateValue evaluate(AST_NODE* node) {
     if (node->token.type == INTEGER) {
-        return { INTEGER, 0, node->token.integer, {} , "" };
+        return { INTEGER, 0, node->token.integer, {} , node->token.name };
     }
     else if (node->token.type == CHAR) {
-        return { CHAR, node->token.character, 0, {}, "" };
+        return { CHAR, node->token.character, 0, {}, node->token.name };
     }
     else if (node->token.type == LIST) {
         std::vector<list_element> list;
@@ -39,13 +39,13 @@ EvaluateValue evaluate(AST_NODE* node) {
             list.push_back(list_val);
             cur = cur->right;
         }
-        return { LIST, 0, 0, list };
+        return { LIST, 0, 0, list, node->token.name };
     }
     else if (node->token.type == STRING) {
-        return { STRING, 0, 0, node->token.list, "" };
+        return { STRING, 0, 0, node->token.list, node->token.name };
     }
     else if (node->token.type == BOOLEAN) {
-        return { BOOLEAN, 0, node->token.integer, {}, "" };
+        return { BOOLEAN, 0, node->token.integer, {}, node->token.name };
     }
     else if (node->token.type == FUNCTION_CALL) {
         std::string func_name = node->token.name;
@@ -61,35 +61,47 @@ EvaluateValue evaluate(AST_NODE* node) {
             std::cerr << "Error: Arguments overload for function '" << func_name << "'" << std::endl;
             exit(1);
         }
-        std::vector<EvaluateValue> arguments;
-        for (auto it : node->children) {
-            arguments.push_back(evaluate(it));
-        }
         auto old_variables_integer = variables_integer;
         auto old_variables_char = variables_char;
         auto old_variables_list = variables_list;
         auto old_variables_type = variables_type;
         auto old_already_declared = already_declared;
-        for (size_t i = 0; i < (int)arguments.size(); i++) {
-            std::string arg_name = function_arguments[func_name][i];
-            EvaluateValue arg_val = arguments[i];
-            already_declared.insert(arg_name);
-            variables_type[arg_name] = arg_val.type;
-            if (arg_val.type == INTEGER || arg_val.type == BOOLEAN) {
-                variables_integer[arg_name] = arg_val.integer;
+        std::unordered_map<std::string, std::string> mutable_mapping;
+        for (size_t i = 0; i < (int)node->children.size(); i++) {
+            function_parameter param = function_arguments[func_name][i];
+            EvaluateValue arg_val = evaluate(node->children[i]);
+            if(param.type != MUTABLE) {
+                already_declared.insert(param.name);
+                variables_type[param.name] = arg_val.type;
+                if (arg_val.type == INTEGER || arg_val.type == BOOLEAN) {
+                    variables_integer[param.name] = arg_val.integer;
+                }
+                else if (arg_val.type == CHAR) {
+                    variables_char[param.name] = arg_val.character;
+                }
+                else if (arg_val.type == LIST || arg_val.type == STRING) {
+                    variables_list[param.name] = arg_val.list;
+                }
             }
-            else if (arg_val.type == CHAR) {
-                variables_char[arg_name] = arg_val.character;
-            }
-            else if (arg_val.type == LIST || arg_val.type == STRING) {
-                variables_list[arg_name] = arg_val.list;
+            else {
+                mutable_mapping[param.name] = arg_val.name;
+                variables_type[param.name] = variables_type[arg_val.name];
+                if (variables_type[arg_val.name] == INTEGER || variables_type[arg_val.name] == BOOLEAN) {
+                    variables_integer[param.name] = variables_integer[arg_val.name];
+                }
+                else if (variables_type[arg_val.name] == CHAR) {
+                    variables_char[param.name] = variables_char[arg_val.name];
+                }
+                else if (variables_type[arg_val.name] == LIST || variables_type[arg_val.name] == STRING) {
+                    variables_list[param.name] = variables_list[arg_val.name];
+                }
             }
         }
-        EvaluateValue res{NONE};
+        EvaluateValue res{ NONE };
         std::vector<Token> func_tokens = function_body[func_name];
         size_t func_idx = 0;
         while (func_idx < func_tokens.size()) {
-            if (func_tokens[func_idx].type == END){
+            if (func_tokens[func_idx].type == END) {
                 func_idx++;
                 continue;
             }
@@ -104,6 +116,28 @@ EvaluateValue evaluate(AST_NODE* node) {
             res = evaluate(cur_root);
             FREE_AST(cur_root);
         }
+        for (auto [param_name, org_var] : mutable_mapping) {
+            if (variables_type[param_name] == INTEGER || variables_type[param_name] == BOOLEAN) {
+                old_variables_integer[org_var] = variables_integer[param_name];
+            }
+            else if (variables_type[param_name] == CHAR) {
+                old_variables_char[org_var] = variables_char[param_name];
+            }
+            else if (variables_type[param_name] == LIST || variables_type[param_name] == STRING) {
+                old_variables_list[org_var] = variables_list[param_name];
+            }
+        }
+        for (auto it : function_global_variables[func_name]) { //assigning global variables values
+            if (variables_type[it] == INTEGER || variables_type[it] == BOOLEAN) {
+                old_variables_integer[it] = variables_integer[it];
+            }
+            else if (variables_type[it] == CHAR) {
+                old_variables_char[it] = variables_char[it];
+            }
+            else if (variables_type[it] == LIST || variables_type[it] == STRING) {
+                old_variables_list[it] = variables_list[it];
+            }
+        }
         variables_type = old_variables_type;
         variables_integer = old_variables_integer;
         variables_char = old_variables_char;
@@ -113,26 +147,26 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
-            return { INTEGER, 0, variables_integer[node->token.name], {},"" };
+            return { INTEGER, 0, variables_integer[node->token.name], {}, node->token.name };
         }
         else if (variables_type[node->token.name] == CHAR) {
-            return { CHAR, variables_char[node->token.name], 0, {}, "" };
+            return { CHAR, variables_char[node->token.name], 0, {}, node->token.name };
         }
         else if (variables_type[node->token.name] == LIST) {
-            return { LIST, 0, 0, variables_list[node->token.name], "" };
+            return { LIST, 0, 0, variables_list[node->token.name], node->token.name };
         }
         else if (variables_type[node->token.name] == STRING) {
-            return { STRING, 0, 0, variables_list[node->token.name], "" };
+            return { STRING, 0, 0, variables_list[node->token.name], node->token.name };
         }
         else if (variables_type[node->token.name] == BOOLEAN) {
-            return { BOOLEAN, 0, variables_integer[node->token.name], {}, "" };
+            return { BOOLEAN, 0, variables_integer[node->token.name], {}, node->token.name };
         }
         std::cerr << "Error: Undefined variable '" << node->token.name << "'" << std::endl;
         exit(1);
     }
     if (node->token.type == OUTPUT) {
-        EvaluateValue value = {NONE};
-        if(node->left) value = evaluate(node->left);
+        EvaluateValue value = { NONE };
+        if (node->left) value = evaluate(node->left);
         if (value.type == CHAR) std::cout << value.character;
         else if (value.type == INTEGER || value.type == BOOLEAN) std::cout << value.integer;
         else if (value.type == STRING) {
