@@ -8,7 +8,7 @@
 
 enum TokenType {
     INTEGER, CHAR, LIST, STRING, BOOLEAN, FUNCTION, INDEX,
-    FUNCTION_CALL, RETURN,
+    FUNCTION_CALL, RETURN, REFERENCE, MUTABLE,
     INTEGER_IDENTIFIER, CHAR_IDENTIFIER,
     LIST_IDENTIFIER, STRING_IDENTIFIER, BOOLEAN_IDENTIFIER,
     FUNCTION_IDENTIFIER,
@@ -52,6 +52,11 @@ struct AST_NODE {
     AST_NODE* left;
     AST_NODE* right;
     std::vector<AST_NODE*> children;
+    bool ismutable = false;
 };
 
+struct function_parameter {
+    std::string name;
+    TokenType type;
+};
 #endif
