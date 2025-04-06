@@ -11,7 +11,7 @@ Currently, these are the features of this language:
 - you can assign all of the types of values above to a list
 - supports parentheses
 - supports comparisons
-- you can declare functions and call them, but you can't change values using functions, WIP
+- supports functions
 - for loops, while loops, if, else if and else functions are coming up
 # How to use this language
 - create a text file named main.dpp
