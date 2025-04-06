@@ -128,22 +128,46 @@ std::vector<Token> tokenize(const std::string& input) {
             }
             else push({ IDENTIFIER, 0, 0, {}, variable });
         }
-        else if (input[i] == '&') {
-            push({REFERENCE});
+        else if (input[i] == '^') {
+            push({XOR});
             i++;
         }
-        else if (input[i] == '>') { //check for > and >=
+        else if (input[i] == '|') {
+            if(i < input.size() - 1 && input[i + 1] == '|') {
+                i++;
+                push({OR_BOOL});
+            }
+            else push({OR});
+            i++;
+        }
+        else if (input[i] == '&') {
+            if(i < input.size() - 1 && input[i + 1] == '&') {
+                i++;
+                push({AND_BOOL});
+            }
+            else push({AND});
+            i++;
+        }
+        else if (input[i] == '>') { //check for > and >= and >>
             if (i < input.size() - 1 && input[i + 1] == '=') {
                 i++;
                 push({ MORE_EQUAL, 0, 0, {}, ">=" });
             }
+            else if (i < input.size() - 1 && input[i + 1] == '>') {
+                i++;
+                push({RIGHT_SHIFT});
+            }
             else push({ MORE, 0, 0, {}, ">" });
             i++;
         }
-        else if (input[i] == '<') { //check for < and <=
+        else if (input[i] == '<') { //check for < and <= and <<
             if (i < input.size() - 1 && input[i + 1] == '=') {
                 i++;
                 push({ LESS_EQUAL, 0, 0 , {}, "<=" });
+            }
+            else if (i < input.size() - 1 && input[i + 1] == '<') {
+                i++;
+                push({LEFT_SHIFT});
             }
             else push({ LESS, 0, 0, {}, "<" });
             i++;
