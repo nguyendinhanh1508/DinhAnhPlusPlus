@@ -12,8 +12,9 @@ Currently, these are the features of this language:
 - supports parentheses
 - supports comparisons
 - supports functions
-- for loops, while loops, if, else if and else functions are coming up
+- supports for loops, while loops, if, else
 # How to use this language
 - create a text file named main.dpp
 - compile the main_for_script.cpp file
 - then type the command: ./main_for_script.exe main.dpp in terminal
+- if you want to run and write the code using the main.cpp file, you have to type RUN for it to start running the code for you
