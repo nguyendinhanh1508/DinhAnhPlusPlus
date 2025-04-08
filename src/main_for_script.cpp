@@ -30,9 +30,5 @@ int main(int argc, char* argv[]) {
         EvaluateValue res = evaluate(cur_root);
         FREE_AST(cur_root);
     }
-    if (final_tokens[index].type != final_tokens.size()) {
-        std::cerr << "Syntax Error: Failed to parse code" << std::endl;
-        exit(1);
-    }
     return 0;
 }
