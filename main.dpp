@@ -1,1 +1,37 @@
-write your code here :))
+#example disjoint set union implementation in D++
+int n
+in n
+list par
+for(int i = 0; i < n; i++) {
+    par = par + i
+}
+list sz
+for(int i = 0; i < n; i++){
+    sz = sz + 1
+}
+func swap(&a, &b) {
+    a = a ^ b
+    b = a ^ b
+    a = a ^ b
+}
+func root(x) {
+    if(x == par[x]) {
+        return x
+    }
+    return (par[x] = root(par[x]))
+}
+func merge(a, b) {
+    a = root(a)
+    b = root(b)
+    if(a == b) {
+        return 69
+    }
+    if(sz[a] > sz[b]) {
+        swap(a, b)
+    }
+    par[a] = b
+    sz[b] = sz[b] + sz[a]
+}
+func samegroup(a, b) {
+    return (root(a) == root(b))
+}
