@@ -7,23 +7,27 @@
 #include "Storage.h"
 
 int main() {
+    std::vector<Token> final_tokens;
     while (true) {
         std::string input;
         std::getline(std::cin, input);
         if (input.empty()) continue;
-        if (input == "EXIT") break;
+        if (input == "RUN") break;
         std::vector<Token> tokens = tokenize(input);
         if (tokens.empty()) continue;
         if (tokens.size() == 1 && tokens.back().type == END) continue;
-        size_t index = 0;
-        AST_NODE* root = parse_language(tokens, index);
-        if (tokens[index].type != END) {
-            std::cerr << "Syntax Error: Failed to parse code" << std::endl;
-            FREE_AST(root);
+        for(auto it : tokens) final_tokens.push_back(it);
+    }
+    if(final_tokens.empty()) exit(1);
+    size_t index = 0;
+    while(index < final_tokens.size()) {
+        if(final_tokens[index].type == END) {
+            index++;
             continue;
         }
-        EvaluateValue result = evaluate(root);
-        FREE_AST(root);
+        AST_NODE* cur_root = parse_language(final_tokens, index);
+        EvaluateValue res = evaluate(cur_root);
+        FREE_AST(cur_root);
     }
     return 0;
 }
