@@ -8,12 +8,22 @@
 std::vector<Token> tokenize(const std::string& input) {
     tokens.clear();
     size_t i = 0;
+    bool iscomment = false;
     while (i < input.size()) {
+        if(iscomment){
+            i++;
+            continue;
+        }
         if (isspace(input[i])) { //ignore spaces, we need to replace this for indentations in the future
             i++;
             continue;
         }
+        else if (input[i] == '#') {
+            iscomment = true;
+            i++;
+        }
         else if (input[i] == ';') {
+            push({ SEMICOLON });
             i++;
             continue;
         }
@@ -117,6 +127,18 @@ std::vector<Token> tokenize(const std::string& input) {
                 push({ NEW_VAR, 0, 0, {}, "create" });
                 push({ FUNCTION_IDENTIFIER, 0, 0, {}, "function" });
             }
+            else if (variable == "if") {
+                push({ IF });
+            }
+            else if (variable == "else") {
+                push({ ELSE });
+            }
+            else if (variable == "for") {
+                push({ FOR });
+            }
+            else if (variable == "while") {
+                push({ WHILE });
+            }
             else if (variable == "true") {
                 push({ BOOLEAN, 0, 1, {}, "" });
             }
@@ -129,23 +151,23 @@ std::vector<Token> tokenize(const std::string& input) {
             else push({ IDENTIFIER, 0, 0, {}, variable });
         }
         else if (input[i] == '^') {
-            push({XOR});
+            push({ XOR });
             i++;
         }
         else if (input[i] == '|') {
-            if(i < input.size() - 1 && input[i + 1] == '|') {
+            if (i < input.size() - 1 && input[i + 1] == '|') {
                 i++;
-                push({OR_BOOL});
+                push({ OR_BOOL });
             }
-            else push({OR});
+            else push({ OR });
             i++;
         }
         else if (input[i] == '&') {
-            if(i < input.size() - 1 && input[i + 1] == '&') {
+            if (i < input.size() - 1 && input[i + 1] == '&') {
                 i++;
-                push({AND_BOOL});
+                push({ AND_BOOL });
             }
-            else push({AND});
+            else push({ AND });
             i++;
         }
         else if (input[i] == '>') { //check for > and >= and >>
@@ -155,7 +177,7 @@ std::vector<Token> tokenize(const std::string& input) {
             }
             else if (i < input.size() - 1 && input[i + 1] == '>') {
                 i++;
-                push({RIGHT_SHIFT});
+                push({ RIGHT_SHIFT });
             }
             else push({ MORE, 0, 0, {}, ">" });
             i++;
@@ -167,7 +189,7 @@ std::vector<Token> tokenize(const std::string& input) {
             }
             else if (i < input.size() - 1 && input[i + 1] == '<') {
                 i++;
-                push({LEFT_SHIFT});
+                push({ LEFT_SHIFT });
             }
             else push({ LESS, 0, 0, {}, "<" });
             i++;
