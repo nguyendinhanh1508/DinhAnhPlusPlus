@@ -20,6 +20,9 @@ AST_NODE* parse_bool(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_if(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_for(std::vector<Token>& tokens, size_t& index);
+AST_NODE* parse_while(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names and functioncalls
     if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == LEFT_PARENTHESIS && function_body.count(tokens[index].name)) {
@@ -148,7 +151,7 @@ AST_NODE* parse_list(std::vector<Token>& tokens, size_t& index) { //look for lis
 
 AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index) {
     std::string func_name = tokens[index++].name;
-    if(tokens[index].type != LEFT_PARENTHESIS){
+    if (tokens[index].type != LEFT_PARENTHESIS) {
         return nullptr;
     }
     index++;
@@ -160,12 +163,12 @@ AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index) {
             continue;
         }
         AST_NODE* cur_val = parse_bool(tokens, index);
-        if (function_arguments[func_name][arg_index].type == MUTABLE){
+        if (function_arguments[func_name][arg_index].type == MUTABLE) {
             cur_val->ismutable = true;
             arguments.push_back(cur_val);
             arg_index++;
         }
-        else if(cur_val) {
+        else if (cur_val) {
             arguments.push_back(cur_val);
             arg_index++;
         }
@@ -181,13 +184,183 @@ AST_NODE* parse_function_arg(std::vector<Token>& tokens, size_t& index) {
         std::cerr << "Syntax Error: Missing closing parenthesis for function argument" << std::endl;
         exit(1);
     }
-    AST_NODE* arg_node = new AST_NODE{Token{FUNCTION_CALL, 0, 0, {}, func_name}, nullptr, nullptr};
+    AST_NODE* arg_node = new AST_NODE{ Token{FUNCTION_CALL, 0, 0, {}, func_name}, nullptr, nullptr };
     arg_node->children = arguments;
     return arg_node;
 }
 
+AST_NODE* parse_if(std::vector<Token>& tokens, size_t& index) {
+    index++;
+    if (tokens[index].type != LEFT_PARENTHESIS) {
+        std::cerr << "Syntax Error: Missing opening parenthesis for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* condition = parse_bool(tokens, index);
+    if (tokens[index].type != RIGHT_PARENTHESIS) {
+        std::cerr << "Syntax Error: Missing closing parentehsis for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    if (tokens[index].type != CURLY_LEFT) {
+        std::cerr << "Syntax Error: Missing function body" << std::endl;
+        exit(1);
+    }
+    index++;
+    std::vector<AST_NODE*> true_branch;
+    while(index < tokens.size() && tokens[index].type != CURLY_RIGHT) {
+        if(tokens[index].type == END) {
+            index++;
+            continue;
+        }
+        AST_NODE* cur_root = parse_language(tokens, index);
+        if (cur_root) {
+            true_branch.push_back(cur_root);
+        }
+    }
+    if (index >= tokens.size() || tokens[index].type != CURLY_RIGHT) {
+        std::cerr << "Syntax Error: Missing closing curly bracket for body" << std::endl;
+        exit(1);
+    }
+    index++;
+    std::vector<AST_NODE*> false_branch;
+    if (index < tokens.size() && tokens[index].type == ELSE) {
+        index++;
+        if (tokens[index].type != CURLY_LEFT) {
+            std::cerr << "Syntax Error: Missing function body" << std::endl;
+            exit(1);
+        }
+        index++;
+        while(index < tokens.size() && tokens[index].type != CURLY_RIGHT) {
+            if(tokens[index].type == END) {
+                index++;
+                continue;
+            }
+            AST_NODE* cur_root = parse_language(tokens, index);
+            if (cur_root) {
+                false_branch.push_back(cur_root);
+            }
+        }
+        if (index >= tokens.size() || tokens[index].type != CURLY_RIGHT) {
+            std::cerr << "Syntax Error: Missing closing curly bracket for body" << std::endl;
+            exit(1);
+        }
+        index++;
+    }
+    AST_NODE* if_node = new AST_NODE{Token{IF}, condition, nullptr};
+    if_node->children = true_branch;
+    if(!false_branch.empty()) {
+        AST_NODE* else_node = new AST_NODE{Token{ELSE}, nullptr, nullptr};
+        else_node->children = false_branch;
+        if_node->right = else_node;
+    }
+    return if_node;
+}
+
+AST_NODE* parse_for(std::vector<Token>& tokens, size_t& index) {
+    index++;
+    if(tokens[index].type != LEFT_PARENTHESIS) {
+        std::cerr << "Syntax Error: Missing opening parenthesis for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* declare = parse_language(tokens, index);
+    if (tokens[index].type != SEMICOLON) {
+        std::cerr << "Syntax Error: Expected semicolon after declare" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* condition = parse_bool(tokens, index);
+    if (tokens[index].type != SEMICOLON) {
+        std::cerr << "Syntax Error: Expected semicolon after for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* increment = parse_language(tokens, index);
+    if (tokens[index].type != RIGHT_PARENTHESIS) {
+        std::cerr << "Syntax Error: Missing closing parenthesis for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    if (tokens[index].type != CURLY_LEFT) {
+        std::cerr << "Syntax Error: Missing function body" << std::endl;
+        exit(1);
+    }
+    index++;
+    std::vector<AST_NODE*> body;
+    while(index < tokens.size() && tokens[index].type != CURLY_RIGHT) {
+        if(tokens[index].type == END) {
+            index++;
+            continue;
+        }
+        AST_NODE* cur_root = parse_language(tokens, index);
+        if (cur_root) {
+            body.push_back(cur_root);
+        }
+    }
+    if (index >= tokens.size() || tokens[index].type != CURLY_RIGHT) {
+        std::cerr << "Syntax Error: Missing closing curly brackets for for loop body" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* for_node = new AST_NODE{Token{FOR}, nullptr, nullptr};
+    for_node->children.push_back(declare);
+    for_node->children.push_back(condition);
+    for_node->children.push_back(increment);
+    for_node->children.insert(for_node->children.end(), body.begin(), body.end());
+    return for_node;
+}
+
+AST_NODE* parse_while(std::vector<Token>& tokens, size_t& index) {
+    index++;
+    if (tokens[index].type != LEFT_PARENTHESIS) {
+        std::cerr << "Syntax Error: Missing opening parentheiss for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* condition = parse_bool(tokens, index);
+    if (tokens[index].type != RIGHT_PARENTHESIS) {
+        std::cerr << "Syntax Error: Missing closing parenthesis for condition" << std::endl;
+        exit(1);
+    }
+    index++;
+    if (tokens[index].type != CURLY_LEFT) {
+        std::cerr << "Syntax Error: Missing function body" << std::endl;
+        exit(1);
+    }
+    index++;
+    std::vector<AST_NODE*> body;
+    while(index < tokens.size() && tokens[index].type != CURLY_RIGHT) {
+        if(tokens[index].type == END) {
+            index++;
+            continue;
+        }
+        AST_NODE* cur_root = parse_language(tokens, index);
+        if (cur_root) {
+            body.push_back(cur_root);
+        }
+    }
+    if (index >= tokens.size() || tokens[index].type != CURLY_RIGHT) {
+        std::cerr << "Syntax Error: Missing closing curly brackets for for loop body" << std::endl;
+        exit(1);
+    }
+    index++;
+    AST_NODE* while_node = new AST_NODE{Token{WHILE}, condition, nullptr};
+    while_node->children = body;
+    return while_node;
+}
+
 AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for declaration, output, input, assign
-    if (tokens[index].type == NEW_VAR) {
+    if (tokens[index].type == IF) {
+        return parse_if(tokens, index);
+    }
+    else if (tokens[index].type == FOR) {
+        return parse_for(tokens, index);
+    }
+    else if (tokens[index].type == WHILE) {
+        return parse_while(tokens, index);
+    }
+    else if (tokens[index].type == NEW_VAR) {
         index++;
         TokenType var_type;
         if (tokens[index].type == INTEGER_IDENTIFIER) var_type = INTEGER;
@@ -207,83 +380,111 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             exit(1);
         }
         already_declared.insert(variable_name.name);
-        if (var_type == INTEGER) {
-            variables_integer[variable_name.name] = 0;
-            variables_type[variable_name.name] = INTEGER;
-            return new AST_NODE{ variable_name, nullptr, nullptr };
-        }
-        else if (var_type == CHAR) {
-            variables_char[variable_name.name] = ' ';
-            variables_type[variable_name.name] = CHAR;
-            return new AST_NODE{ variable_name, nullptr, nullptr };
-        }
-        else if (var_type == LIST) {
-            variables_list[variable_name.name] = {};
-            variables_type[variable_name.name] = LIST;
-            return new AST_NODE{ variable_name, nullptr, nullptr };
-        }
-        else if (var_type == STRING) {
-            variables_list[variable_name.name] = {};
-            variables_type[variable_name.name] = STRING;
-            return new AST_NODE{ variable_name, nullptr, nullptr };
-        }
-        else if (var_type == BOOLEAN) {
-            variables_integer[variable_name.name] = 0;
-            variables_type[variable_name.name] = BOOLEAN;
-            return new AST_NODE{ variable_name, nullptr, nullptr };
-        }
-        else if (var_type == FUNCTION) {
-            if (tokens[index].type != LEFT_PARENTHESIS) {
-                std::cerr << "Syntax Error: Missing '(' for function argument";
-                exit(1);
+        if (index < tokens.size() && tokens[index].type == ASSIGN) {
+            index++;
+            AST_NODE* expression = parse_bool(tokens, index);
+            if (var_type == INTEGER) {
+                variables_integer[variable_name.name] = 0;
+                variables_type[variable_name.name] = INTEGER;
             }
-            else index++;
-            std::vector<function_parameter> args;
-            while (index < tokens.size() && tokens[index].type != RIGHT_PARENTHESIS) {
-                if (tokens[index].type == COMMA) {
-                    index++;
-                    continue;
+            else if (var_type == CHAR) {
+                variables_char[variable_name.name] = ' ';
+                variables_type[variable_name.name] = CHAR;
+            }
+            else if (var_type == LIST) {
+                variables_list[variable_name.name] = {};
+                variables_type[variable_name.name] = LIST;
+            }
+            else if (var_type == STRING) {
+                variables_list[variable_name.name] = {};
+                variables_type[variable_name.name] = STRING;
+            }
+            else if (var_type == BOOLEAN) {
+                variables_integer[variable_name.name] = 0;
+                variables_type[variable_name.name] = BOOLEAN;
+            }
+            AST_NODE* var_node = new AST_NODE{ variable_name, nullptr, nullptr };
+            return new AST_NODE{ Token{ASSIGN, ' ', 0, {}, "="}, var_node, expression };
+        }
+        else {
+            if (var_type == INTEGER) {
+                variables_integer[variable_name.name] = 0;
+                variables_type[variable_name.name] = INTEGER;
+                return new AST_NODE{ variable_name, nullptr, nullptr };
+            }
+            else if (var_type == CHAR) {
+                variables_char[variable_name.name] = ' ';
+                variables_type[variable_name.name] = CHAR;
+                return new AST_NODE{ variable_name, nullptr, nullptr };
+            }
+            else if (var_type == LIST) {
+                variables_list[variable_name.name] = {};
+                variables_type[variable_name.name] = LIST;
+                return new AST_NODE{ variable_name, nullptr, nullptr };
+            }
+            else if (var_type == STRING) {
+                variables_list[variable_name.name] = {};
+                variables_type[variable_name.name] = STRING;
+                return new AST_NODE{ variable_name, nullptr, nullptr };
+            }
+            else if (var_type == BOOLEAN) {
+                variables_integer[variable_name.name] = 0;
+                variables_type[variable_name.name] = BOOLEAN;
+                return new AST_NODE{ variable_name, nullptr, nullptr };
+            }
+            else if (var_type == FUNCTION) {
+                if (tokens[index].type != LEFT_PARENTHESIS) {
+                    std::cerr << "Syntax Error: Missing '(' for function argument";
+                    exit(1);
                 }
-                else if (tokens[index].type == AND) {
-                    index++;
-                    args.push_back({tokens[index].name, MUTABLE});
-                    index++;
+                else index++;
+                std::vector<function_parameter> args;
+                while (index < tokens.size() && tokens[index].type != RIGHT_PARENTHESIS) {
+                    if (tokens[index].type == COMMA) {
+                        index++;
+                        continue;
+                    }
+                    else if (tokens[index].type == AND) {
+                        index++;
+                        args.push_back({ tokens[index].name, MUTABLE });
+                        index++;
+                    }
+                    else if (tokens[index].type == IDENTIFIER) {
+                        args.push_back({ tokens[index].name, IDENTIFIER });
+                        index++;
+                    }
+                    else {
+                        std::cerr << "Error: Element in function argument during declaration must be of type 'IDENTIFIER'" << std::endl;
+                        exit(1);
+                    }
                 }
-                else if (tokens[index].type == IDENTIFIER) {
-                    args.push_back({tokens[index].name, IDENTIFIER});
+                if (index < tokens.size() && tokens[index].type == RIGHT_PARENTHESIS) {
+                    function_arguments[variable_name.name] = args;
                     index++;
                 }
                 else {
-                    std::cerr << "Error: Element in function argument during declaration must be of type 'IDENTIFIER'" << std::endl;
+                    std::cerr << "Error: Missing closing parenthesis for function arguments" << std::endl;
                     exit(1);
                 }
+                while (index < tokens.size() && tokens[index].type != CURLY_LEFT) {
+                    index++;
+                }
+                if (index == tokens.size()) {
+                    std::cerr << "Error: Missing body for function declaration" << std::endl;
+                    exit(1);
+                }
+                else index++;
+                in_function_body++;
+                cur_function_name = variable_name.name;
+                for (auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
+                return new AST_NODE{ variable_name, nullptr, nullptr };
             }
-            if (index < tokens.size() && tokens[index].type == RIGHT_PARENTHESIS) {
-                function_arguments[variable_name.name] = args;
-                index++;
-            }
-            else {
-                std::cerr << "Error: Missing closing parenthesis for function arguments" << std::endl;
-                exit(1);
-            }
-            while (index < tokens.size() && tokens[index].type != CURLY_LEFT) {
-                index++;
-            }
-            if (index == tokens.size()) {
-                std::cerr << "Error: Missing body for function declaration" << std::endl;
-                exit(1);
-            }
-            else index++;
-            in_function_body++;
-            cur_function_name = variable_name.name;
-            for(auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
-            return new AST_NODE{ variable_name, nullptr, nullptr };
         }
     }
     else if (tokens[index].type == RETURN) {
         index++;
         AST_NODE* expression = parse_bool(tokens, index);
-        return new AST_NODE{ Token{RETURN}, expression, nullptr};
+        return new AST_NODE{ Token{RETURN}, expression, nullptr };
     }
     else if (tokens[index].type == OUTPUT) {
         index++;
