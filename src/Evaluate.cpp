@@ -98,23 +98,9 @@ EvaluateValue evaluate(AST_NODE* node) {
             }
         }
         EvaluateValue res{ NONE };
-        std::vector<Token> func_tokens = function_body[func_name];
-        size_t func_idx = 0;
-        while (func_idx < func_tokens.size()) {
-            if (func_tokens[func_idx].type == END) {
-                func_idx++;
-                continue;
-            }
-            AST_NODE* cur_root = parse_language(func_tokens, func_idx);
-            if (cur_root) {
-                if (cur_root->token.type == RETURN) {
-                    res = evaluate(cur_root->left);
-                    FREE_AST(cur_root);
-                    break;
-                }
-            }
-            res = evaluate(cur_root);
-            FREE_AST(cur_root);
+        std::vector<AST_NODE*> func_nodes = function_body[func_name];
+        for (auto it : func_nodes) {
+            evaluate(it);
         }
         for (auto [param_name, org_var] : mutable_mapping) {
             if (variables_type[param_name] == INTEGER || variables_type[param_name] == BOOLEAN) {
@@ -233,13 +219,13 @@ EvaluateValue evaluate(AST_NODE* node) {
         auto old_variables_list = variables_list;
         auto old_variables_type = variables_type;
         auto old_already_declared = already_declared;
-        while (true) {
+        while(true) {
             EvaluateValue condition = evaluate(node->left);
             if (condition.type != BOOLEAN && condition.type != INTEGER && condition.type != CHAR) {
                 std::cerr << "Error: While condition must be converted to bool" << std::endl;
                 exit(1);
             }
-            if (!condition.integer && !condition.character) {
+            if(!condition.integer && !condition.character) {
                 break;
             }
             for (auto it : node->children) {
@@ -351,21 +337,6 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     EvaluateValue left_val = evaluate(node->left);
     if (node->token.type == ASSIGN) {
-        if (node->left->token.type == GET_VALUE) {
-            std::string var_name = left_val.name;
-            EvaluateValue value = evaluate(node->right);
-            size_t list_index = left_val.index;
-            if (value.type == INTEGER || value.type == BOOLEAN) {
-                variables_list[var_name][list_index] = { value.type, value.integer };
-            }
-            else if (value.type == CHAR) {
-                variables_list[var_name][list_index] = { value.type, 0, value.character };
-            }
-            else if (value.type == LIST || value.type == STRING) {
-                variables_list[var_name][list_index] = { value.type, 0, 0, value.list };
-            }
-            return { NONE };
-        }
         if (node->left->token.type != IDENTIFIER) {
             std::cerr << "Error: Left side of assignment must be a variable" << std::endl;
             exit(1);
@@ -421,19 +392,19 @@ EvaluateValue evaluate(AST_NODE* node) {
                 exit(1);
             }
             if (left_val.list[list_index].type == CHAR) {
-                return { CHAR, left_val.list[list_index].character, 0, {}, left_val.name, list_index };
+                return { CHAR, left_val.list[list_index].character, 0, {} };
             }
             else if (left_val.list[list_index].type == INTEGER) {
-                return { INTEGER, 0, left_val.list[list_index].integer, {}, left_val.name, list_index };
+                return { INTEGER, 0, left_val.list[list_index].integer, {} };
             }
             else if (left_val.list[list_index].type == LIST) {
-                return { LIST, 0, 0, left_val.list[list_index].list, left_val.name, list_index };
+                return { LIST, 0, 0, left_val.list[list_index].list };
             }
             else if (left_val.list[list_index].type == STRING) {
-                return { STRING, 0, 0, left_val.list[list_index].list, left_val.name, list_index };
+                return { STRING, 0, 0, left_val.list[list_index].list };
             }
             else if (left_val.list[list_index].type == BOOLEAN) {
-                return { BOOLEAN, 0, left_val.list[list_index].integer, {}, left_val.name, list_index };
+                return { BOOLEAN, 0, 0, left_val.list[list_index].list };
             }
         }
         else {
