@@ -40,13 +40,7 @@ std::vector<Token> tokenize(const std::string& input) {
             i++;
         }
         else if (input[i] == '}') { //out of the list/function body
-            if (in_list == 0 && in_function_body == 1) {
-                in_function_body--;
-                function_body[cur_function_name] = cur_function_body;
-                cur_function_name.clear();
-                cur_function_body.clear();
-            }
-            else push({ CURLY_RIGHT });
+            push({ CURLY_RIGHT });
             i++;
         }
         else if (isdigit(input[i])) { //check for integers
