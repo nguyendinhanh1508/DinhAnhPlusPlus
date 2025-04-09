@@ -38,7 +38,6 @@ AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers 
 
 AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for indices for list access
     AST_NODE* left = parse(tokens, index);
-    AST_NODE* return_value = left;
     while (index < tokens.size() && tokens[index].type == GET_VALUE) {
         index++;
         AST_NODE* expression = parse_bool(tokens, index);
@@ -48,14 +47,9 @@ AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for in
         }
         index++;
         AST_NODE* node = new AST_NODE{ Token{GET_VALUE, 0, 0, {}, "[]"}, left, expression };
-        if (tokens[index].type == ASSIGN) {
-            index++;
-            AST_NODE* assign_node = new AST_NODE{ Token{ASSIGN, 0, 0, {}}, node, parse_bool(tokens, index)};
-            return assign_node;
-        }
-        return_value = node;
+        left = node;
     }
-    return return_value;
+    return left;
 }
 
 AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look for parentheses
@@ -472,17 +466,30 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                     std::cerr << "Error: Missing closing parenthesis for function arguments" << std::endl;
                     exit(1);
                 }
-                while (index < tokens.size() && tokens[index].type != CURLY_LEFT) {
-                    index++;
-                }
-                if (index == tokens.size()) {
-                    std::cerr << "Error: Missing body for function declaration" << std::endl;
+                if (tokens[index].type != CURLY_LEFT) {
+                    std::cerr << "Syntax Error: Missing function body" << std::endl;
                     exit(1);
                 }
-                else index++;
-                in_function_body++;
+                index++;
+                std::vector<AST_NODE*> body;
+                while(index < tokens.size() && tokens[index].type != CURLY_RIGHT) {
+                    if(tokens[index].type == END) {
+                        index++;
+                        continue;
+                    }
+                    AST_NODE* cur_root = parse_language(tokens, index);
+                    if (cur_root) {
+                        body.push_back(cur_root);
+                    }
+                }
+                if (index >= tokens.size() || tokens[index].type != CURLY_RIGHT) {
+                    std::cerr << "Syntax Error: Missing closing curly brackets for for loop body" << std::endl;
+                    exit(1);
+                }
+                index++;
                 cur_function_name = variable_name.name;
                 for (auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
+                function_body[cur_function_name] = body;
                 return new AST_NODE{ variable_name, nullptr, nullptr };
             }
         }
