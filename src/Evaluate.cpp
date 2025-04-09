@@ -98,8 +98,11 @@ EvaluateValue evaluate(AST_NODE* node) {
             }
         }
         EvaluateValue res{ NONE };
-        std::vector<AST_NODE*> func_nodes = function_body[func_name];
-        for (auto it : func_nodes) {
+        for (auto it : function_body[func_name]) {
+            if(it->token.type == RETURN) {
+                res = evaluate(it->left);
+                break;
+            }
             evaluate(it);
         }
         for (auto [param_name, org_var] : mutable_mapping) {
