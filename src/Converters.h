@@ -29,11 +29,6 @@ char string_to_char(std::string str) {
 }
 
 void push(Token token) {
-    if (in_function_body) {
-        cur_function_body.push_back(token);
-    }
-    else {
-        tokens.push_back(token);
-    }
+    tokens.push_back(token);
 }
 #endif
