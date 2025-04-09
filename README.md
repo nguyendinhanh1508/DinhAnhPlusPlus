@@ -18,3 +18,4 @@ Currently, these are the features of this language:
 - compile the main_for_script.cpp file
 - then type the command: ./main_for_script.exe main.dpp in terminal
 - if you want to run and write the code using the main.cpp file, you have to type RUN for it to start running the code for you
+# WIP, extremely buggy
