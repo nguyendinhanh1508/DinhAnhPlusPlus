@@ -38,6 +38,7 @@ AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers 
 
 AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for indices for list access
     AST_NODE* left = parse(tokens, index);
+    AST_NODE* return_value = left;
     while (index < tokens.size() && tokens[index].type == GET_VALUE) {
         index++;
         AST_NODE* expression = parse_bool(tokens, index);
@@ -47,9 +48,14 @@ AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for in
         }
         index++;
         AST_NODE* node = new AST_NODE{ Token{GET_VALUE, 0, 0, {}, "[]"}, left, expression };
-        left = node;
+        if (tokens[index].type == ASSIGN) {
+            index++;
+            AST_NODE* assign_node = new AST_NODE{ Token{ASSIGN, 0, 0, {}}, node, parse_bool(tokens, index)};
+            return assign_node;
+        }
+        return_value = node;
     }
-    return left;
+    return return_value;
 }
 
 AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look for parentheses
