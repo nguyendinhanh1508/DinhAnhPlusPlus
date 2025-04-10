@@ -69,9 +69,9 @@ AST_NODE* parse_parenthesis(std::vector<Token>& tokens, size_t& index) { //look 
     return parse_index(tokens, index);
 }
 
-AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index) { //look for '*' and '/'
+AST_NODE* parse_higher(std::vector<Token>& tokens, size_t& index) { //look for '*' and '/' and '%'
     AST_NODE* left = parse_parenthesis(tokens, index);
-    while (tokens[index].type == MULTIPLY || tokens[index].type == DIVIDE) {
+    while (tokens[index].type == MULTIPLY || tokens[index].type == DIVIDE || tokens[index].type == MODULO) {
         Token operation = tokens[index++];
         AST_NODE* right = parse_parenthesis(tokens, index);
         AST_NODE* node = new AST_NODE{ operation, left, right };
@@ -379,60 +379,13 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
             std::cerr << "Error: Previously declared variable \'" << variable_name.name << '\'' << std::endl;
             exit(1);
         }
-        already_declared.insert(variable_name.name);
         if (index < tokens.size() && tokens[index].type == ASSIGN) {
             index++;
             AST_NODE* expression = parse_bool(tokens, index);
-            if (var_type == INTEGER) {
-                variables_integer[variable_name.name] = 0;
-                variables_type[variable_name.name] = INTEGER;
-            }
-            else if (var_type == CHAR) {
-                variables_char[variable_name.name] = ' ';
-                variables_type[variable_name.name] = CHAR;
-            }
-            else if (var_type == LIST) {
-                variables_list[variable_name.name] = {};
-                variables_type[variable_name.name] = LIST;
-            }
-            else if (var_type == STRING) {
-                variables_list[variable_name.name] = {};
-                variables_type[variable_name.name] = STRING;
-            }
-            else if (var_type == BOOLEAN) {
-                variables_integer[variable_name.name] = 0;
-                variables_type[variable_name.name] = BOOLEAN;
-            }
-            AST_NODE* var_node = new AST_NODE{ variable_name, nullptr, nullptr };
-            return new AST_NODE{ Token{ASSIGN, ' ', 0, {}, "="}, var_node, expression };
+            return new AST_NODE{ Token{NEW_VAR, 0, 0, {}, variable_name.name}, new AST_NODE{Token{var_type}, nullptr, nullptr}, expression };
         }
         else {
-            if (var_type == INTEGER) {
-                variables_integer[variable_name.name] = 0;
-                variables_type[variable_name.name] = INTEGER;
-                return new AST_NODE{ variable_name, nullptr, nullptr };
-            }
-            else if (var_type == CHAR) {
-                variables_char[variable_name.name] = ' ';
-                variables_type[variable_name.name] = CHAR;
-                return new AST_NODE{ variable_name, nullptr, nullptr };
-            }
-            else if (var_type == LIST) {
-                variables_list[variable_name.name] = {};
-                variables_type[variable_name.name] = LIST;
-                return new AST_NODE{ variable_name, nullptr, nullptr };
-            }
-            else if (var_type == STRING) {
-                variables_list[variable_name.name] = {};
-                variables_type[variable_name.name] = STRING;
-                return new AST_NODE{ variable_name, nullptr, nullptr };
-            }
-            else if (var_type == BOOLEAN) {
-                variables_integer[variable_name.name] = 0;
-                variables_type[variable_name.name] = BOOLEAN;
-                return new AST_NODE{ variable_name, nullptr, nullptr };
-            }
-            else if (var_type == FUNCTION) {
+            if (var_type == FUNCTION) {
                 if (tokens[index].type != LEFT_PARENTHESIS) {
                     std::cerr << "Syntax Error: Missing '(' for function argument";
                     exit(1);
@@ -490,7 +443,12 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                 std::string cur_function_name = variable_name.name;
                 for (auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
                 function_body[cur_function_name] = body;
-                return new AST_NODE{ variable_name, nullptr, nullptr };
+                already_declared.insert(variable_name.name);
+                variables_type[variable_name.name] = FUNCTION;
+                return nullptr;
+            }
+            else {
+                return new AST_NODE{ Token{NEW_VAR, 0, 0, {}, variable_name.name}, new AST_NODE{Token{var_type}, nullptr, nullptr}, nullptr };
             }
         }
     }
