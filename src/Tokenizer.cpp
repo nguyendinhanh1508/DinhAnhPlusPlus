@@ -144,6 +144,10 @@ std::vector<Token> tokenize(const std::string& input) {
             }
             else push({ IDENTIFIER, 0, 0, {}, variable });
         }
+        else if (input[i] == '%') {
+            push({ MODULO });
+            i++;
+        }
         else if (input[i] == '^') {
             push({ XOR });
             i++;
