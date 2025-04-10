@@ -13,7 +13,7 @@ enum TokenType {
     INTEGER_IDENTIFIER, CHAR_IDENTIFIER,
     LIST_IDENTIFIER, STRING_IDENTIFIER, BOOLEAN_IDENTIFIER,
     FUNCTION_IDENTIFIER,
-    PLUS, MINUS, MULTIPLY, DIVIDE, AND, OR, XOR, LEFT_SHIFT, RIGHT_SHIFT, 
+    PLUS, MINUS, MULTIPLY, DIVIDE, AND, OR, XOR, LEFT_SHIFT, RIGHT_SHIFT, MODULO,
     ASSIGN, IDENTIFIER,
     OUTPUT, INPUT, GETLINE,
     NEW_VAR,
@@ -46,6 +46,7 @@ struct EvaluateValue {
     int integer;
     std::vector<list_element> list;
     std::string name;
+    int index;
 };
 
 struct AST_NODE {
