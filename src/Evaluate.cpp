@@ -12,7 +12,62 @@
 //we should always skip END type, our code cannot handle that
 
 EvaluateValue evaluate(AST_NODE* node) {
-    if (node->token.type == INTEGER) {
+    if(!node) {
+        return { NONE };
+    }
+    if (node->token.type == NEW_VAR) {
+        std::string var_name = node->token.name;
+        TokenType var_type = node->left->token.type;
+        already_declared.insert(var_name);
+        variables_type[var_name] = var_type;
+        if (var_type == INTEGER || var_type == BOOLEAN) {
+            variables_integer[var_name] = 0;
+        }
+        else if (var_type == CHAR) {
+            variables_char[var_name] = 0;
+        }
+        else if (var_type == LIST || var_type == STRING) {
+            variables_list[var_name] = {};
+        }
+        if (node->right) {
+            EvaluateValue value = evaluate(node->right);
+            if (var_type == INTEGER || var_type == BOOLEAN) {
+                if (value.type == INTEGER || value.type == BOOLEAN) {
+                    variables_integer[var_name] = value.integer;
+                }
+                else if (value.type == CHAR) {
+                    variables_integer[var_name] = value.character;
+                }
+                else {
+                    std::cerr << "Error: Mismatched types" << std::endl;
+                    exit(1);
+                }
+            }
+            else if (var_type == CHAR) {
+                if (value.type == CHAR) {
+                    variables_char[var_name] = value.character;
+                }
+                else if (value.type == INTEGER) {
+                    variables_char[var_name] = value.integer;
+                }
+                else {
+                    std::cerr << "Error: Mismatched types" << std::endl;
+                    exit(1);
+                }
+            }
+            else if (var_type == LIST || var_type == STRING) {
+                if (value.type == var_type) {
+                    variables_list[var_name] = value.list;
+                }
+                else {
+                    std::cerr << "Error: Mismatched types" << std::endl;
+                    exit(1);
+                }
+            }
+        }
+        return { NONE };
+    }
+    else if (node->token.type == INTEGER) {
         return { INTEGER, 0, node->token.integer, {} , node->token.name };
     }
     else if (node->token.type == CHAR) {
@@ -99,7 +154,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         }
         EvaluateValue res{ NONE };
         for (auto it : function_body[func_name]) {
-            if(it->token.type == RETURN) {
+            if (it->token.type == RETURN) {
                 res = evaluate(it->left);
                 break;
             }
@@ -223,13 +278,13 @@ EvaluateValue evaluate(AST_NODE* node) {
         auto old_variables_list = variables_list;
         auto old_variables_type = variables_type;
         auto old_already_declared = already_declared;
-        while(true) {
+        while (true) {
             EvaluateValue condition = evaluate(node->left);
             if (condition.type != BOOLEAN && condition.type != INTEGER && condition.type != CHAR) {
                 std::cerr << "Error: While condition must be converted to bool" << std::endl;
                 exit(1);
             }
-            if(!condition.integer && !condition.character) {
+            if (!condition.integer && !condition.character) {
                 break;
             }
             for (auto it : node->children) {
