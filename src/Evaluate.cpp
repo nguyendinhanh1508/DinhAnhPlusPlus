@@ -48,6 +48,11 @@ EvaluateValue evaluate(AST_NODE* node) {
         return { BOOLEAN, 0, node->token.integer, {}, node->token.name };
     }
     else if (node->token.type == FUNCTION_CALL) {
+        auto old_variables_integer = variables_integer;
+        auto old_variables_char = variables_char;
+        auto old_variables_list = variables_list;
+        auto old_variables_type = variables_type;
+        auto old_already_declared = already_declared;
         std::string func_name = node->token.name;
         if (function_body.count(func_name) == 0) {
             std::cerr << "Error: Undefined function" << std::endl;
@@ -61,11 +66,6 @@ EvaluateValue evaluate(AST_NODE* node) {
             std::cerr << "Error: Arguments overload for function '" << func_name << "'" << std::endl;
             exit(1);
         }
-        auto old_variables_integer = variables_integer;
-        auto old_variables_char = variables_char;
-        auto old_variables_list = variables_list;
-        auto old_variables_type = variables_type;
-        auto old_already_declared = already_declared;
         std::unordered_map<std::string, std::string> mutable_mapping;
         for (size_t i = 0; i < (int)node->children.size(); i++) {
             function_parameter param = function_arguments[func_name][i];
@@ -135,17 +135,17 @@ EvaluateValue evaluate(AST_NODE* node) {
         return res;
     }
     else if (node->token.type == IF) {
-        EvaluateValue condition = evaluate(node->left);
-        if (condition.type != BOOLEAN && condition.type != INTEGER && condition.type != CHAR) {
-            std::cerr << "Error: If condition must be convertible to boolean" << std::endl;
-            exit(1);
-        }
         auto global_var = already_declared;
         auto old_variables_integer = variables_integer;
         auto old_variables_char = variables_char;
         auto old_variables_list = variables_list;
         auto old_variables_type = variables_type;
         auto old_already_declared = already_declared;
+        EvaluateValue condition = evaluate(node->left);
+        if (condition.type != BOOLEAN && condition.type != INTEGER && condition.type != CHAR) {
+            std::cerr << "Error: If condition must be convertible to boolean" << std::endl;
+            exit(1);
+        }
         if ((condition.type == CHAR && condition.character > 0) || ((condition.type == INTEGER || condition.type == BOOLEAN) && condition.integer)) {
             for (auto it : node->children) {
                 evaluate(it);
@@ -214,6 +214,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         variables_char = old_variables_char;
         variables_list = old_variables_list;
         already_declared = old_already_declared;
+        return { NONE };
     }
     else if (node->token.type == WHILE) {
         auto global_var = already_declared;
@@ -251,6 +252,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         variables_char = old_variables_char;
         variables_list = old_variables_list;
         already_declared = old_already_declared;
+        return { NONE };
     }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
