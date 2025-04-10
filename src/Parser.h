@@ -487,7 +487,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                     exit(1);
                 }
                 index++;
-                cur_function_name = variable_name.name;
+                std::string cur_function_name = variable_name.name;
                 for (auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
                 function_body[cur_function_name] = body;
                 return new AST_NODE{ variable_name, nullptr, nullptr };
@@ -526,7 +526,7 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
         }
         return new AST_NODE{ Token{GETLINE, ' ', 0}, new AST_NODE{variable_name, nullptr, nullptr}, nullptr };
     }
-    else if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
+    else if (index + 1 < tokens.size() && tokens[index + 1].type == ASSIGN) {
         Token var_token = tokens[index];
         index += 2;
         AST_NODE* expression = parse_bool(tokens, index);
