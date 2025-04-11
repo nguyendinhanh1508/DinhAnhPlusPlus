@@ -30,15 +30,15 @@ Currently, these are the features of this language:
 ```}```<br>
 - if statement syntax:<br>
 ```if(<parameter>){```<br>
-```    <if statement body```
+```    <if statement body```<br>
 ```}```<br>
 - for loop syntax:<br>
-```for(<declaration>, <conditions>, <actions>){```
-```    <for loop body>```
+```for(<declaration>, <conditions>, <actions>){```<br>
+```    <for loop body>```<br>
 ```}```<br>
 - while loop syntax:<br>
-```while(<condition>){```
-```    <while loop body>```
+```while(<condition>){```<br>
+```    <while loop body>```<br>
 ```}```<br>
   
 
