@@ -353,19 +353,29 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
-            return { INTEGER, 0, variables_integer[node->token.name], {}, node->token.name };
+            EvaluateValue cur = { INTEGER, 0, variables_integer[node->token.name], {}, node->token.name };
+            cur.pointer.integer = &variables_integer[node->token.name];
+            return cur;
         }
         else if (variables_type[node->token.name] == CHAR) {
-            return { CHAR, variables_char[node->token.name], 0, {}, node->token.name };
+            EvaluateValue cur = { CHAR, variables_char[node->token.name], 0, {}, node->token.name };
+            cur.pointer.character = &variables_char[node->token.name];
+            return cur;
         }
         else if (variables_type[node->token.name] == LIST) {
-            return { LIST, 0, 0, variables_list[node->token.name], node->token.name };
+            EvaluateValue cur = { LIST, 0, 0, variables_list[node->token.name], node->token.name };
+            cur.pointer.list = &variables_list[node->token.name];
+            return cur;
         }
         else if (variables_type[node->token.name] == STRING) {
-            return { STRING, 0, 0, variables_list[node->token.name], node->token.name };
+            EvaluateValue cur = { STRING, 0, 0, variables_list[node->token.name], node->token.name };
+            cur.pointer.list = &variables_list[node->token.name];
+            return cur;
         }
         else if (variables_type[node->token.name] == BOOLEAN) {
-            return { BOOLEAN, 0, variables_integer[node->token.name], {}, node->token.name };
+            EvaluateValue cur = { BOOLEAN, 0, variables_integer[node->token.name], {}, node->token.name };
+            cur.pointer.integer = &variables_integer[node->token.name];
+            return cur;
         }
         std::cerr << "Error: Undefined variable '" << node->token.name << "'" << std::endl;
         exit(1);
@@ -439,33 +449,33 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     EvaluateValue left_val = evaluate(node->left);
     if (node->token.type == ASSIGN) {
-        if (node->left->token.type != IDENTIFIER) {
+        if (node->left->token.type != IDENTIFIER && !left_val.islist_element) {
             std::cerr << "Error: Left side of assignment must be a variable" << std::endl;
             exit(1);
         }
         std::string var_name = node->left->token.name;
         EvaluateValue value = evaluate(node->right);
         if (value.type == INTEGER || value.type == BOOLEAN) {
-            if (variables_type[var_name] == CHAR) variables_char[var_name] = value.integer;
-            else if (variables_type[var_name] == INTEGER) variables_integer[var_name] = value.integer;
-            else if (variables_type[var_name] == BOOLEAN) variables_integer[var_name] = (value.integer > 0);
+            if (left_val.type == CHAR) *left_val.pointer.character = value.integer;
+            else if (left_val.type == INTEGER) *left_val.pointer.integer = value.integer;
+            else if (left_val.type == BOOLEAN) *left_val.pointer.integer = (value.integer > 0);
             else {
                 std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
                 exit(1);
             }
         }
         else if (value.type == CHAR) {
-            if (variables_type[var_name] == CHAR) variables_char[var_name] = value.character;
-            else if (variables_type[var_name] == INTEGER) variables_integer[var_name] = value.character;
-            else if (variables_type[var_name] == BOOLEAN) variables_integer[var_name] = (value.character > 0);
+            if (left_val.type == CHAR) *left_val.pointer.character = value.character;
+            else if (left_val.type == INTEGER) *left_val.pointer.integer = value.character;
+            else if (left_val.type == BOOLEAN) *left_val.pointer.integer = (value.character > 0);
             else {
                 std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
                 exit(1);
             }
         }
         else if (value.type == LIST) {
-            if (variables_type[var_name] == LIST) {
-                variables_list[var_name] = value.list;
+            if (left_val.type == LIST) {
+                *left_val.pointer.list = value.list;
             }
             else {
                 std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
@@ -473,8 +483,8 @@ EvaluateValue evaluate(AST_NODE* node) {
             }
         }
         else if (value.type == STRING) {
-            if (variables_type[var_name] == STRING) {
-                variables_list[var_name] = value.list;
+            if (left_val.type == STRING) {
+                *left_val.pointer.list = value.list;
             }
             else {
                 std::cerr << "Error: Assign wrong value type to the variable" << std::endl;
@@ -494,19 +504,34 @@ EvaluateValue evaluate(AST_NODE* node) {
                 exit(1);
             }
             if (left_val.list[list_index].type == CHAR) {
-                return { CHAR, left_val.list[list_index].character, 0, {} };
+                EvaluateValue cur = { CHAR, left_val.list[list_index].character, 0, {} };
+                cur.islist_element = true;
+                cur.pointer.character = &left_val.list[list_index].character;
+                return cur;
             }
             else if (left_val.list[list_index].type == INTEGER) {
-                return { INTEGER, 0, left_val.list[list_index].integer, {} };
+                EvaluateValue cur = { INTEGER, 0, left_val.list[list_index].integer, {} };
+                cur.islist_element = true;
+                cur.pointer.integer = &left_val.list[list_index].integer;
+                return cur;
             }
             else if (left_val.list[list_index].type == LIST) {
-                return { LIST, 0, 0, left_val.list[list_index].list };
+                EvaluateValue cur = { LIST, 0, 0, left_val.list[list_index].list };
+                cur.islist_element = true;
+                cur.pointer.list = &left_val.list[list_index].list;
+                return cur;
             }
             else if (left_val.list[list_index].type == STRING) {
-                return { STRING, 0, 0, left_val.list[list_index].list };
+                EvaluateValue cur = { STRING, 0, 0, left_val.list[list_index].list };
+                cur.islist_element = true;
+                cur.pointer.list = &left_val.list[list_index].list;
+                return cur;
             }
             else if (left_val.list[list_index].type == BOOLEAN) {
-                return { BOOLEAN, 0, 0, left_val.list[list_index].list };
+                EvaluateValue cur = { BOOLEAN, 0, left_val.list[list_index].integer };
+                cur.islist_element = true;
+                cur.pointer.integer = &left_val.list[list_index].integer;
+                return cur;
             }
         }
         else {
