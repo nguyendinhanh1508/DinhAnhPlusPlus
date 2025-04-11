@@ -57,6 +57,12 @@ Currently, these are the features of this language:
 - ```true``` and ```false``` are converted to 1 and 0
 - array elements are accessed using square brackets, ```a[0]```
 - curly brackets are used for function bodies
+- - list syntax:<br>
+```{<elements>, ...}```<br>
+- string syntax:<br>
+```"<string>"```<br>
+- char syntax:<br>
+```'<char'```<br>
 - function syntax:<br>
 ```func <function_name>(&<name if you want to pass by reference>, <name>)```<br>
 ```      <function body>```<br>
