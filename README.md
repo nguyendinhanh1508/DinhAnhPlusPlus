@@ -1,18 +1,8 @@
 # D++
-Dinh Anh's Programming Language
-This is an intepreted, high-level programming language that is still WIP.
-The language I use to interpret this is C++.
-Currently, these are the features of this language:
-- calculate
-- create variable
-- assign value
-- input/output
-- supports integers, characters, strings, booleans, lists
-- you can assign all of the types of values above to a list
-- supports parentheses
-- supports comparisons
-- supports functions
-- supports for loops, while loops, if, else
+Dinh Anh's Programming Language<br>
+This is an intepreted, high-level programming language that is still WIP.<br>
+The language I use to interpret this is C++.<br>
+This language is extremely buggy and it lacks the ability to assign to list values, so don't do that<br>
 # How to use this language
 - create a text file named main.dpp
 - compile the main_for_script.cpp file
