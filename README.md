@@ -2,7 +2,6 @@
 Dinh Anh's Programming Language<br>
 This is an intepreted, high-level programming language that is still WIP.<br>
 The language I use to interpret this is C++.<br>
-This language is extremely buggy and it lacks the ability to assign to list values, so don't do that<br>
 # How to use this language
 - create a text file named main.dpp
 - compile the main_for_script.cpp file
