@@ -25,10 +25,20 @@ Currently, these are the features of this language:
 - array elements are accessed using square brackets, ```a[0]```
 - curly brackets are used for function bodies
 - function syntax:<br>
-```func <function_name>(&<name if you want to pass by reference>, <name>)```
-```      <function body>```
-```    }```
+```func <function_name>(&<name if you want to pass by reference>, <name>)```<br>
+```      <function body>```<br>
+```}```<br>
 - if statement syntax:<br>
-if(<parameter>){<br>
+```if(<parameter>){```<br>
+```    <if statement body```
+```}```<br>
+- for loop syntax:<br>
+```for(<declaration>, <conditions>, <actions>){```
+```    <for loop body>```
+```}```<br>
+- while loop syntax:<br>
+```while(<condition>){```
+```    <while loop body>```
+```}```<br>
   
 
