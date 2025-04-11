@@ -18,4 +18,15 @@ Currently, these are the features of this language:
 - compile the main_for_script.cpp file
 - then type the command: ./main_for_script.exe main.dpp in terminal
 - if you want to run and write the code using the main.cpp file, you have to type RUN for it to start running the code for you
-# WIP, extremely buggy
+# Language syntax
+- comments are started with the '#' symbol
+- spaces will be ignored, this language doesn't use indentations
+- this also doesn't support semicolons, they're only used to separate parameters in the for loop
+- array elements are accessed using square brackets, <list name>[<index>]
+- curly brackets are used for function bodies
+- function syntax:<br>
+```func <function_name>(&<name if you want to pass by reference>, <name>)<br>```
+- if statement syntax:<br>
+if(<parameter>){<br>
+  
+
