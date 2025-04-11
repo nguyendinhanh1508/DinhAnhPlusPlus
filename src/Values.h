@@ -40,6 +40,12 @@ struct Token {
     std::string name;
 };
 
+struct Pointer {
+    int* integer = nullptr;
+    char* character = nullptr;
+    std::vector<list_element>* list = nullptr;
+};
+
 struct EvaluateValue {
     TokenType type;
     char character;
@@ -47,6 +53,9 @@ struct EvaluateValue {
     std::vector<list_element> list;
     std::string name;
     int index;
+    bool isreturn = false;
+    bool islist_element = false;
+    Pointer pointer;
 };
 
 struct AST_NODE {
