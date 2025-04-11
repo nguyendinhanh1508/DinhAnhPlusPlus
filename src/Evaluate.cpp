@@ -12,7 +12,7 @@
 //we should always skip END type, our code cannot handle that
 
 EvaluateValue evaluate(AST_NODE* node) {
-    if(!node) {
+    if (!node) {
         return { NONE };
     }
     if (node->token.type == NEW_VAR) {
@@ -158,7 +158,10 @@ EvaluateValue evaluate(AST_NODE* node) {
                 res = evaluate(it->left);
                 break;
             }
-            evaluate(it);
+            res = evaluate(it);
+            if (res.isreturn == true) {
+                break;
+            }
         }
         for (auto [param_name, org_var] : mutable_mapping) {
             if (variables_type[param_name] == INTEGER || variables_type[param_name] == BOOLEAN) {
@@ -201,14 +204,27 @@ EvaluateValue evaluate(AST_NODE* node) {
             std::cerr << "Error: If condition must be convertible to boolean" << std::endl;
             exit(1);
         }
+        EvaluateValue returnval = { NONE };
         if ((condition.type == CHAR && condition.character > 0) || ((condition.type == INTEGER || condition.type == BOOLEAN) && condition.integer)) {
             for (auto it : node->children) {
-                evaluate(it);
+                if (it->token.type == RETURN) {
+                    returnval = evaluate(it->left);
+                    returnval.isreturn = true;
+                    break;
+                }
+                returnval = evaluate(it);
+                if (returnval.isreturn == true) break;
             }
         }
         else if (node->right && node->right->token.type == ELSE) {
             for (auto it : node->right->children) {
-                evaluate(it);
+                if (it->token.type == RETURN) {
+                    returnval = evaluate(it->left);
+                    returnval.isreturn = true;
+                    break;
+                }
+                returnval = evaluate(it);
+                if (returnval.isreturn == true) break;
             }
         }
         for (auto it : global_var) {
@@ -227,7 +243,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         variables_char = old_variables_char;
         variables_list = old_variables_list;
         already_declared = old_already_declared;
-        return { NONE };
+        return returnval;
     }
     else if (node->token.type == FOR) {
         auto global_var = already_declared;
@@ -239,16 +255,29 @@ EvaluateValue evaluate(AST_NODE* node) {
         if (node->children.size() > 0 && node->children[0]) {
             evaluate(node->children[0]);
         }
+        EvaluateValue returnval = { NONE };
         while (true) {
             if (node->children.size() > 1 && node->children[1]) {
                 EvaluateValue condition = evaluate(node->children[1]);
                 if (condition.integer == 0 || condition.character) break;
             }
+            bool breakloop = false;
             for (size_t i = 3; i < node->children.size(); i++) {
                 if (node->children[i]) {
-                    evaluate(node->children[i]);
+                    if (node->children[i]->token.type == RETURN) {
+                        returnval = evaluate(node->children[i]->left);
+                        returnval.isreturn = true;
+                        breakloop = true;
+                        break;
+                    }
+                    returnval = evaluate(node->children[i]);
+                    if (returnval.isreturn == true) {
+                        breakloop = true;
+                        break;
+                    }
                 }
             }
+            if (breakloop) break;
             if (node->children.size() > 2 && node->children[2]) {
                 evaluate(node->children[2]);
             }
@@ -269,7 +298,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         variables_char = old_variables_char;
         variables_list = old_variables_list;
         already_declared = old_already_declared;
-        return { NONE };
+        return returnval;
     }
     else if (node->token.type == WHILE) {
         auto global_var = already_declared;
@@ -278,6 +307,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         auto old_variables_list = variables_list;
         auto old_variables_type = variables_type;
         auto old_already_declared = already_declared;
+        EvaluateValue returnval = { NONE };
         while (true) {
             EvaluateValue condition = evaluate(node->left);
             if (condition.type != BOOLEAN && condition.type != INTEGER && condition.type != CHAR) {
@@ -287,9 +317,21 @@ EvaluateValue evaluate(AST_NODE* node) {
             if (!condition.integer && !condition.character) {
                 break;
             }
+            bool breakloop = false;
             for (auto it : node->children) {
-                evaluate(it);
+                if (it->token.type == RETURN) {
+                    returnval = evaluate(it->left);
+                    returnval.isreturn = true;
+                    breakloop = true;
+                    break;
+                }
+                returnval = evaluate(it);
+                if (returnval.isreturn == true) {
+                    breakloop = true;
+                    break;
+                }
             }
+            if (breakloop) break;
         }
         for (auto it : global_var) {
             if (variables_type[it] == INTEGER || variables_type[it] == BOOLEAN) {
@@ -307,7 +349,7 @@ EvaluateValue evaluate(AST_NODE* node) {
         variables_char = old_variables_char;
         variables_list = old_variables_list;
         already_declared = old_already_declared;
-        return { NONE };
+        return returnval;
     }
     if (node->token.type == IDENTIFIER) {
         if (variables_type[node->token.name] == INTEGER) {
@@ -481,11 +523,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer & right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -497,20 +539,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character & right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -523,11 +565,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer | right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -539,20 +581,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character | right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -565,11 +607,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer ^ right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -581,20 +623,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character ^ right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -607,11 +649,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer << right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -623,20 +665,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character << right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -649,11 +691,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer >> right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -665,20 +707,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character >> right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -691,11 +733,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer && right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -707,20 +749,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character && right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -733,11 +775,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer || right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
@@ -749,20 +791,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character || right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+                std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot perform bitwise operations on a list" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot perform bitwise operations on a string" << std::endl;
+            std::cerr << "Error: You cannot perform bitwise operations on a string" << std::endl;
             exit(1);
         }
     }
@@ -775,11 +817,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer + right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot add a list onto an integer" << std::endl;
+                std::cerr << "Error: You cannot add a list onto an integer" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot add a string onto an integer" << std::endl;
+                std::cerr << "Error: You cannot add a string onto an integer" << std::endl;
                 exit(1);
             }
         }
@@ -791,11 +833,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)((int)left_val.character + right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot add a list onto a character" << std::endl;
+                std::cerr << "Error: You cannot add a list onto a character" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot add a string onto a character" << std::endl;
+                std::cerr << "Error: You cannot add a string onto a character" << std::endl;
                 exit(1);
             }
         }
@@ -824,11 +866,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 str.push_back({ CHAR, 0, right_val.character, {} });
             }
             else if (right_val.type == INTEGER) {
-                std::cerr << "You cannot add an integer onto a string" << std::endl;
+                std::cerr << "Error: You cannot add an integer onto a string" << std::endl;
                 exit(1);
             }
             else if (right_val.type == BOOLEAN) {
-                std::cerr << "You cannot add a boolean value onto a string" << std::endl;
+                std::cerr << "Error: You cannot add a boolean value onto a string" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
@@ -837,7 +879,7 @@ EvaluateValue evaluate(AST_NODE* node) {
                 }
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot add a list onto a string" << std::endl;
+                std::cerr << "Error: You cannot add a list onto a string" << std::endl;
                 exit(1);
             }
             return { STRING, 0, 0, str, "" };
@@ -852,11 +894,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character - right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot subtract a list from an integer" << std::endl;
+                std::cerr << "Error: You cannot subtract a list from an integer" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot subtract a string from an integer" << std::endl;
+                std::cerr << "Error: You cannot subtract a string from an integer" << std::endl;
                 exit(1);
             }
         }
@@ -868,20 +910,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer - right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot subtract a list from a character" << std::endl;
+                std::cerr << "Error: You cannot subtract a list from a character" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot subtract a string from a character" << std::endl;
+                std::cerr << "Error: You cannot subtract a string from a character" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot subtract from a list" << std::endl;
+            std::cerr << "Error: You cannot subtract from a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot subtract from a string" << std::endl;
+            std::cerr << "Error: You cannot subtract from a string" << std::endl;
             exit(1);
         }
     }
@@ -894,11 +936,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character * right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot multiply an integer by a list" << std::endl;
+                std::cerr << "Error: You cannot multiply an integer by a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot multiply an integer by a string" << std::endl;
+                std::cerr << "Error: You cannot multiply an integer by a string" << std::endl;
                 exit(1);
             }
         }
@@ -910,20 +952,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer * right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot multiply a character by a list" << std::endl;
+                std::cerr << "Error: You cannot multiply a character by a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot multiply a character by a string" << std::endl;
+                std::cerr << "Error: You cannot multiply a character by a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot multiply the list" << std::endl;
+            std::cerr << "Error: You cannot multiply the list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot multiply the string" << std::endl;
+            std::cerr << "Error: You cannot multiply the string" << std::endl;
             exit(1);
         }
     }
@@ -944,11 +986,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character / right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot divide a character by a list" << std::endl;
+                std::cerr << "Error: You cannot divide a character by a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot divide a character by a string" << std::endl;
+                std::cerr << "Error: You cannot divide a character by a string" << std::endl;
                 exit(1);
             }
         }
@@ -960,20 +1002,20 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer / right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot divide an integer by a list" << std::endl;
+                std::cerr << "Error: You cannot divide an integer by a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot divide an integer by a string" << std::endl;
+                std::cerr << "Error: You cannot divide an integer by a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot divide a list" << std::endl;
+            std::cerr << "Error: You cannot divide a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot divide a string" << std::endl;
+            std::cerr << "Error: You cannot divide a string" << std::endl;
             exit(1);
         }
     }
@@ -994,11 +1036,11 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.character % right_val.character), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot modulo a character by a list" << std::endl;
+                std::cerr << "Error: You cannot modulo a character by a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot modulo a character by a string" << std::endl;
+                std::cerr << "Error: You cannot modulo a character by a string" << std::endl;
                 exit(1);
             }
         }
@@ -1010,26 +1052,26 @@ EvaluateValue evaluate(AST_NODE* node) {
                 return { INTEGER, 0, (int)(left_val.integer % right_val.integer), {}, "" };
             }
             else if (right_val.type == LIST) {
-                std::cerr << "You cannot modulo an integer by a list" << std::endl;
+                std::cerr << "Error: You cannot modulo an integer by a list" << std::endl;
                 exit(1);
             }
             else if (right_val.type == STRING) {
-                std::cerr << "You cannot modulo an integer by a string" << std::endl;
+                std::cerr << "Error: You cannot modulo an integer by a string" << std::endl;
                 exit(1);
             }
         }
         else if (left_val.type == LIST) {
-            std::cerr << "You cannot mod a list" << std::endl;
+            std::cerr << "Error: You cannot mod a list" << std::endl;
             exit(1);
         }
         else if (left_val.type == STRING) {
-            std::cerr << "You cannot mod a string" << std::endl;
+            std::cerr << "Error: You cannot mod a string" << std::endl;
             exit(1);
         }
     }
     if (node->token.type == MORE) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare lists" << std::endl;
+            std::cerr << "Error: You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -1060,7 +1102,7 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == MORE_EQUAL) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare lists" << std::endl;
+            std::cerr << "Error: You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -1091,7 +1133,7 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == LESS) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare lists" << std::endl;
+            std::cerr << "Error: You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -1122,7 +1164,7 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == LESS_EQUAL) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare a list to anything" << std::endl;
+            std::cerr << "Error: You cannot compare a list to anything" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -1153,7 +1195,7 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == EQUAL) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare lists" << std::endl;
+            std::cerr << "Error: You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
@@ -1184,7 +1226,7 @@ EvaluateValue evaluate(AST_NODE* node) {
     }
     if (node->token.type == NOT_EQUAL) {
         if (left_val.type == LIST || right_val.type == LIST) {
-            std::cerr << "You cannot compare lists" << std::endl;
+            std::cerr << "Error: You cannot compare lists" << std::endl;
             exit(1);
         }
         if (left_val.type == CHAR) {
