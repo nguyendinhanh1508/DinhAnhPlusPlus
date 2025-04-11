@@ -22,23 +22,55 @@ Currently, these are the features of this language:
 - comments are started with the '#' symbol
 - spaces will be ignored, this language doesn't use indentations
 - this also doesn't support semicolons, they're only used to separate parameters in the for loop
+- output is ```out```
+- input is ```in```
+- getline(takes in input from the entire line) is ```getline```
+- end this line and go to next line is ```nextline```
+- it supports multiple operands:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;modulo: ```%```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;xor: ```^```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;or: ```|```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;or(for comparing): ```||```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and: ```&```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and(for comparing): ```&&```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;left shift: ```<<```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;right shift: ```>>```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;greater than: ```>```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;greater than or equals to: ```>=```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;less than: ```<```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;less than or equals to: ```<=```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;assign: ```=```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;equal to: ```==```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;not equals to: ```!=```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;addition: ```+```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;subtraction: ```-```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;multiplication: ```*```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;division: ```/```<br>
+- to declare a variable, we write variable type and then the name:```<variable type> <name>```<br>
+- it also supports a few value types:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string: ```string```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;integer: ```int```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;character: ```char```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;list: ```list```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean: ```bool```<br>
+&nbsp;&nbsp;&nbsp;&nbsp;function: ```func```<br>
+- ```true``` and ```false``` are converted to 1 and 0
 - array elements are accessed using square brackets, ```a[0]```
 - curly brackets are used for function bodies
 - function syntax:<br>
 ```func <function_name>(&<name if you want to pass by reference>, <name>)```<br>
 ```      <function body>```<br>
+```      return <value>```<br>
 ```}```<br>
 - if statement syntax:<br>
 ```if(<parameter>){```<br>
-```    <if statement body```<br>
+```    <if statement body```
 ```}```<br>
 - for loop syntax:<br>
-```for(<declaration>, <conditions>, <actions>){```<br>
-```    <for loop body>```<br>
+```for(<declaration>, <conditions>, <actions>){```
+```    <for loop body>```
 ```}```<br>
 - while loop syntax:<br>
-```while(<condition>){```<br>
-```    <while loop body>```<br>
+```while(<condition>){```
+```    <while loop body>```
 ```}```<br>
-  
-
