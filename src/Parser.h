@@ -25,7 +25,7 @@ AST_NODE* parse_for(std::vector<Token>& tokens, size_t& index);
 AST_NODE* parse_while(std::vector<Token>& tokens, size_t& index);
 
 AST_NODE* parse(std::vector<Token>& tokens, size_t& index) { //look for numbers and variable names and functioncalls
-    if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == LEFT_PARENTHESIS && function_body.count(tokens[index].name)) {
+    if (tokens[index].type == IDENTIFIER && index + 1 < tokens.size() && tokens[index + 1].type == LEFT_PARENTHESIS && already_declared.count(tokens[index].name) && variables_type[tokens[index].name] == FUNCTION) {
         return parse_function_arg(tokens, index);
     }
     if (tokens[index].type == INTEGER || tokens[index].type == IDENTIFIER || tokens[index].type == CHAR || tokens[index].type == LIST || tokens[index].type == STRING || tokens[index].type == BOOLEAN) {
@@ -391,6 +391,8 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                     exit(1);
                 }
                 else index++;
+                already_declared.insert(variable_name.name);
+                variables_type[variable_name.name] = FUNCTION;
                 std::vector<function_parameter> args;
                 while (index < tokens.size() && tokens[index].type != RIGHT_PARENTHESIS) {
                     if (tokens[index].type == COMMA) {
@@ -443,8 +445,6 @@ AST_NODE* parse_language(std::vector<Token>& tokens, size_t& index) { //look for
                 std::string cur_function_name = variable_name.name;
                 for (auto it : already_declared) function_global_variables[cur_function_name].push_back(it);
                 function_body[cur_function_name] = body;
-                already_declared.insert(variable_name.name);
-                variables_type[variable_name.name] = FUNCTION;
                 return nullptr;
             }
             else {
