@@ -48,6 +48,12 @@ AST_NODE* parse_index(std::vector<Token>& tokens, size_t& index) { //look for in
         index++;
         AST_NODE* node = new AST_NODE{ Token{GET_VALUE, 0, 0, {}, "[]"}, left, expression };
         left = node;
+        if(index < tokens.size() && tokens[index].type == ASSIGN) {
+            index++;
+            AST_NODE* assign_expression = parse_bool(tokens, index);
+            AST_NODE* assign_node = new AST_NODE{Token{ASSIGN}, left, assign_expression};
+            left = assign_node;
+        }
     }
     return left;
 }
