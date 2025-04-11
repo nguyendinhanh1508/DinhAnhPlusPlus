@@ -22,10 +22,12 @@ Currently, these are the features of this language:
 - comments are started with the '#' symbol
 - spaces will be ignored, this language doesn't use indentations
 - this also doesn't support semicolons, they're only used to separate parameters in the for loop
-- array elements are accessed using square brackets, <list name>[<index>]
+- array elements are accessed using square brackets, ```a[0]```
 - curly brackets are used for function bodies
 - function syntax:<br>
-```func <function_name>(&<name if you want to pass by reference>, <name>)<br>```
+```func <function_name>(&<name if you want to pass by reference>, <name>)```
+```      <function body>```
+```    }```
 - if statement syntax:<br>
 if(<parameter>){<br>
   
