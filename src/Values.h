@@ -44,6 +44,7 @@ struct Pointer {
     int* integer = nullptr;
     char* character = nullptr;
     std::vector<list_element>* list = nullptr;
+    list_element* list_element = nullptr;
 };
 
 struct EvaluateValue {
