@@ -56,7 +56,7 @@ The language I use to interpret this is C++.<br>
 - ***string syntax:***<br>
 ```"<string>"```<br>
 - ***char syntax:<br>***
-```'<char'```<br>
+```'<char>'```<br>
 - ***function syntax:<br>***
 ```func <function_name>(<name>, ...)```<br>
 ```      <function body>```<br>
@@ -65,10 +65,10 @@ The language I use to interpret this is C++.<br>
 for functions, if you want to pass by reference you can do ```&<name>```
 - ***if statement syntax:<br>***
 ```if(<parameter>){```<br>
-```    <if statement body```<br>
+```    <if statement body>```<br>
 ```}```<br>
 - ***for loop syntax:<br>***
-```for(<declaration>, <conditions>, <actions>){```<br>
+```for(<declaration>; <conditions>; <actions>){```<br>
 ```    <for loop body>```<br>
 ```}```<br>
 - ***while loop syntax:<br>***
