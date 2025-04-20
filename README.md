@@ -58,7 +58,7 @@ The language I use to interpret this is C++.<br>
 - ***char syntax:<br>***
 ```'<char>'```<br>
 - ***function syntax:<br>***
-```func <function_name>(<name>, ...)```<br>
+```func <function_name>(<name>, ...){```<br>
 ```      <function body>```<br>
 ```      return <value>```<br>
 ```}```<br>
